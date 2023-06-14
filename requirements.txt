@@ -1,0 +1,9 @@
+scikit-learn
+pandas
+xarray
+dask[distributed]
+bokeh<3
+netcdf4
+matplotlib
+flox
+timezonefinder
