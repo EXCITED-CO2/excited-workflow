@@ -1,9 +1,10 @@
 scikit-learn
 pandas
+openpyxl # Excel file compatibility.
 xarray
 dask[distributed]
 bokeh<3
 netcdf4
 matplotlib
-flox
+flox # Makes xarray groupby (and resample) faster.
 timezonefinder

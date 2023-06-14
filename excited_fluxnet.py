@@ -206,7 +206,24 @@ def preprocess_ameriflux_sites(
         zip_folder: Path,
         metadata_file: Path,
         transcom_regions_file: Path,
-    ):
+    ) -> xr.Dataset:
+    """Preprocess the Ameriflux sites into analysis-ready data.
+
+    The following operations are performed:
+    - The latitude and longitude of every site is found
+    - The correct offset from UTC is determined
+    - The sites corresponding to transcom region 2 are determined
+    - The required variables are loaded from the csv file, masked for the quality flag,
+        have the time corrected to UTC, and are resampled to 1 hour intervals.
+    
+    Args:
+        zip_folder: Folder containing the Ameriflux site .zip files.
+        metadata_file: Excel file containing the Ameriflux metadata.
+        transcom_regions_file: netCDF file describing the transcom regions.
+
+    Returns:
+        The preprocessed data of all Ameriflux sites.
+    """
     sitenames = get_ameriflux_site_names(zip_folder=zip_folder)
     print(f"Found {len(sitenames)} Ameriflux sites.")
     site_props = read_ameriflux_site_properties(
