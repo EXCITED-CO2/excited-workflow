@@ -43,7 +43,7 @@ The CarbonTracker data is available from NOAA's Global Monitoring Laboratory. Yo
 - [The monthly average carbon flux file (~500 MB)](https://gml.noaa.gov/aftp//products/carbontracker/co2/CT2022/fluxes/monthly/CT2022.flux1x1-monthly.nc)
 
 ### ERA5
-With era5cli the ERA5 data can be downloaded using the following command. Do note that this is a lot of data (~230 GB), and the download will take a long time.
+With [era5cli](https://github.com/eWaterCycle/era5cli) the ERA5 data can be downloaded using the following command. Do note that this is a lot of data (~230 GB), and the download will take a long time. Do `pip install era5cli` to be able to run the command.
 
 ```bash
 era5cli hourly \
