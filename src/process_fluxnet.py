@@ -1,13 +1,14 @@
-from typing import Optional, Any
-from pathlib import Path
 import re
-import xarray as xr
-import pandas as pd
 import zipfile
-import numpy as np
-from timezonefinder import TimezoneFinder
-import pytz
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Optional
+
+import numpy as np
+import pandas as pd
+import pytz
+import xarray as xr
+from timezonefinder import TimezoneFinder
 
 
 def get_ameriflux_site_names(zip_folder: Path) -> list[str]:
@@ -252,7 +253,8 @@ def preprocess_ameriflux_sites(
             minimum_qc_value=1,
         )
 
-        ds_site["sitename"] = (["site"], [site])
+        ds_site["site"] = (["site"], np.array([site], dtype="<U6"))
+
         ds_site["latitude"] = (["site"], [float(site_props[site]["LOCATION_LAT"])])
         ds_site["longitude"] = (["site"], [float(site_props[site]["LOCATION_LONG"])])
 
