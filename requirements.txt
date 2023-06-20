@@ -8,3 +8,4 @@ netcdf4
 matplotlib
 flox # Makes xarray groupby (and resample) faster.
 timezonefinder
+pycaret
