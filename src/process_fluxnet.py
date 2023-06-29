@@ -111,7 +111,7 @@ def read_ameriflux_csv(
         An xarray Dataset containing the site's data.
     """
     if quality_flag is None and minimum_qc_value is not None:
-        raise ValueError("If you use a quality flag, please enter the minimum value.")
+        raise ValueError("Please enter a valid quality flag.")
 
     site_zip_fname = f"AMF_{sitename}_FLUXNET_FULLSET_*.zip"
     zipfiles = list(fluxnet_zip_folder.glob(site_zip_fname))
