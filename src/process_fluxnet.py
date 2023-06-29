@@ -26,9 +26,7 @@ def get_ameriflux_site_names(zip_folder: Path) -> list[str]:
     """
     zip_files = list(zip_folder.glob("*.zip"))
     if len(zip_files) == 0:
-        raise FileNotFoundError(
-            f"Could not find any zip files in {zip_folder}."
-        )
+        raise FileNotFoundError(f"Could not find any zip files in {zip_folder}.")
 
     filenames = "\n".join([f.name for f in zip_files])
 
@@ -45,11 +43,11 @@ def get_ameriflux_site_names(zip_folder: Path) -> list[str]:
 
 def read_ameriflux_site_properties(
     metadata_file: Path,
-    sitenames: list[str], 
+    sitenames: list[str],
     properties: list[str],
 ) -> dict[str, dict[str, Any]]:
     """Read the metadata of fluxnet sites.
-     
+
     Multiple sites should be read at once, as read_excel is slow.
 
     Args:
@@ -64,18 +62,20 @@ def read_ameriflux_site_properties(
     site_metadata = {}
 
     for site in sitenames:
-        df_site = df_meta.where(df_meta["SITE_ID"]==site).dropna()
+        df_site = df_meta.where(df_meta["SITE_ID"] == site).dropna()
         data = {}
         for prop in properties:
             try:
-                data[prop] = df_site.where(
-                    df_site["VARIABLE"]==prop
-                ).dropna()["DATAVALUE"].to_numpy()[0]
+                data[prop] = (
+                    df_site.where(df_site["VARIABLE"] == prop)
+                    .dropna()["DATAVALUE"]
+                    .to_numpy()[0]
+                )
             except IndexError:
                 print(f"Failed to read property. {site=}, {prop=}")
         if len(data) > 0:
             site_metadata[site] = data
-    
+
     return site_metadata
 
 
@@ -104,7 +104,7 @@ def read_ameriflux_csv(
         variables: The names of the variable that should be extracted.
             For example, "NEE_VUT_REF".
         quality_flag: Which quality flag should be used. E.g. 'NEE_VUT_REF_QC'.
-        minimum_qc_value: Minimum quality flag value, where 0=measured, 
+        minimum_qc_value: Minimum quality flag value, where 0=measured,
             1=high quality gapfill, 2=mediocre gapfill, and 3=low quality.
 
     Returns:
@@ -121,26 +121,26 @@ def read_ameriflux_csv(
         )
     site_zipfile = zipfiles[0]
 
-    r = re.compile(".*FULLSET_H[HR].*")  # grab the (half)hourly files.
+    regex_hhourly_file = re.compile(".*FULLSET_H[HR].*")  # grab the (half)hourly files.
+    site_zip = zipfile.ZipFile(site_zipfile)
 
-    z = zipfile.ZipFile(site_zipfile)
-    site_csv_fname = next(filter(r.match, z.namelist()))
-    with z.open(site_csv_fname) as f:
+    site_csv_fname = next(filter(regex_hhourly_file.match, site_zip.namelist()))
+    with site_zip.open(site_csv_fname) as f:
         df = pd.read_csv(f, na_values="-9999")
 
     df["TIMESTAMP_END"] = pd.to_datetime(df["TIMESTAMP_END"], format="%Y%m%d%H%M")
     df = df.set_index("TIMESTAMP_END")
-    
+
     df_req = df[variables]
 
     if quality_flag:
-        df_req = df_req.where(df[quality_flag]<=minimum_qc_value, np.nan)
+        df_req = df_req.where(df[quality_flag] <= minimum_qc_value, np.nan)
 
-    ds_site = df_req.to_xarray()    
+    ds_site = df_req.to_xarray()
 
-    ds_site = df_req.to_xarray()    
+    ds_site = df_req.to_xarray()
     ds_site = ds_site.rename({"TIMESTAMP_END": "time"})
-    ds_site = ds_site.resample(time="1H").mean() # faster if flox is installed!
+    ds_site = ds_site.resample(time="1H").mean()  # faster if flox is installed!
     ds_site["time"] = ds_site["time"].values - site_tz_offset
     ds_site = ds_site.expand_dims("site")
 
@@ -148,8 +148,8 @@ def read_ameriflux_csv(
 
 
 def find_site_utc_offset(
-        site_props: dict[str, dict[str, Any]],
-    ) -> dict[str, dict[str, Any]]:
+    site_props: dict[str, dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
     """Add the site's timezone offset to the site properties dictionary.
 
     Args:
@@ -162,10 +162,11 @@ def find_site_utc_offset(
     tf = TimezoneFinder()  # reuse
 
     for site in site_props:
-        tz_name = tf.timezone_at(
-            lng=float(site_props[site]["LOCATION_LONG"]),
-            lat=float(site_props[site]["LOCATION_LAT"]),
-        )
+        lat = float(site_props[site]["LOCATION_LAT"])
+        lon = float(site_props[site]["LOCATION_LONG"])
+        tz_name = tf.timezone_at(lng=lon, lat=lat)
+        if tz_name is None:
+            raise ValueError(f"Could not find timezone of location {lat},{lon}")
         tz = pytz.timezone(tz_name)
         # Use a winter-date: the sites are in standard time only (no daylight savings)
         td = np.timedelta64(tz.utcoffset(datetime(2010, 1, 1)))
@@ -183,31 +184,34 @@ def mask_sites_transcom(
     Args:
         transcom_regions_file: The netCDF file containing the transcom regions.
         transcom_region: Which transcom region ID should be used to mask.
-        site_props: Dictionary containing properties per site. 
+        site_props: Dictionary containing properties per site.
 
     Returns:
-        Site properties dictionary, containing only the sites in the specified transcom 
+        Site properties dictionary, containing only the sites in the specified transcom
             region.
     """
     ds_regions = xr.open_dataset(transcom_regions_file)
 
     transcom2_sites: list[str] = []
     for site in site_props:
-        if ds_regions["transcom_regions"].sel(
-            latitude=float(site_props[site]["LOCATION_LAT"]),
-            longitude=float(site_props[site]["LOCATION_LONG"]),
-            method="nearest",
-        ) == transcom_region:
+        if (
+            ds_regions["transcom_regions"].sel(
+                latitude=float(site_props[site]["LOCATION_LAT"]),
+                longitude=float(site_props[site]["LOCATION_LONG"]),
+                method="nearest",
+            )
+            == transcom_region
+        ):
             transcom2_sites.append(site)
-    
+
     return {site: site_props[site] for site in site_props if site in transcom2_sites}
 
 
 def preprocess_ameriflux_sites(
-        zip_folder: Path,
-        metadata_file: Path,
-        transcom_regions_file: Path,
-    ) -> xr.Dataset:
+    zip_folder: Path,
+    metadata_file: Path,
+    transcom_regions_file: Path,
+) -> xr.Dataset:
     """Preprocess the Ameriflux sites into analysis-ready data.
 
     The following operations are performed:
@@ -216,7 +220,7 @@ def preprocess_ameriflux_sites(
     - The sites corresponding to transcom region 2 are determined
     - The required variables are loaded from the csv file, masked for the quality flag,
         have the time corrected to UTC, and are resampled to 1 hour intervals.
-    
+
     Args:
         zip_folder: Folder containing the Ameriflux site .zip files.
         metadata_file: Excel file containing the Ameriflux metadata.
@@ -242,7 +246,7 @@ def preprocess_ameriflux_sites(
     print(f"Of which {len(site_props)} are located within transcom region 2.")
 
     print("Starting to load the .csv files...")
-    ds_sites: list[xr.Dataset] = [xr.Dataset]*len(site_props)
+    ds_sites: list[xr.Dataset] = [xr.Dataset()] * len(site_props)
     for i_site, site in enumerate(site_props):
         ds_site = read_ameriflux_csv(
             sitename=site,

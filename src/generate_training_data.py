@@ -32,7 +32,7 @@ def extract_per_site_era5_data(
     )
 
     ds_era5 = xr.open_mfdataset(
-        era5_data_folder.glob("*.nc"),
+        list(era5_data_folder.glob("*.nc")),
         parallel=True,
         chunks={"time": -1, "latitude": 1, "longitude": 1},  # Rechunk for performance
     )
@@ -87,7 +87,7 @@ def combine_era5_fluxnet(
         The two datasets merged into a single dataset.
     """
     ds_era5 = xr.open_mfdataset(
-        preprocessed_era5_folder.glob("*.nc"),
+        list(preprocessed_era5_folder.glob("*.nc")),
         parallel=True,
     )
 
