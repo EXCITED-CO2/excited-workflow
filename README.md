@@ -6,7 +6,7 @@ This repository serves to reproduce the workflow of Conor's MSc thesis.
 
 Install Python 3.10 for your operating system.
 
-From within the `scratch` repository's main folder do:
+Within the `scratch` repository's main folder do:
 
 ```bash
 python -m venv .venv
