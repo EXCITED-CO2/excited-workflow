@@ -67,7 +67,9 @@ Change to the desired folder and run:
 era5cli monthly \
     --variables 2m_temperature 2m_dewpoint_temperature surface_net_solar_radiation \
     surface_net_thermal_radiation mean_surface_sensible_heat_flux mean_surface_latent_heat_flux \
+    type_of_low_vegetation type_of_high_vegetation \
     surface_pressure total_precipitation \
+    type_of_low_vegetation type_of_high_vegetation \
     --startyear 2000 --endyear 2020 --levels surface \
 ```
 
