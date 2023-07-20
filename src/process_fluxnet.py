@@ -75,7 +75,6 @@ def read_ameriflux_site_properties(
                 print(f"Failed to read property. {site=}, {prop=}")
         if len(data) > 0:
             site_metadata[site] = data
-
     return site_metadata
 
 
@@ -220,7 +219,6 @@ def preprocess_ameriflux_sites(
     - The sites corresponding to transcom region 2 are determined
     - The required variables are loaded from the csv file, masked for the quality flag,
         have the time corrected to UTC, and are resampled to 1 hour intervals.
-
     Args:
         zip_folder: Folder containing the Ameriflux site .zip files.
         metadata_file: Excel file containing the Ameriflux metadata.

@@ -43,6 +43,10 @@ The CarbonTracker data is available from NOAA's Global Monitoring Laboratory. Yo
 - [The monthly average carbon flux file (~500 MB)](https://gml.noaa.gov/aftp//products/carbontracker/co2/CT2022/fluxes/monthly/CT2022.flux1x1-monthly.nc)
 
 ### ERA5
+#### Hourly data (Fluxnet model)
+Do note that this is a lot of data (~230 GB), and the download will take a long time. 
+
+Change to the folder where you want and run the following command:
 With [era5cli](https://github.com/eWaterCycle/era5cli) the ERA5 data can be downloaded using the following command. Do note that this is a lot of data (~230 GB), and the download will take a long time. Do `pip install era5cli` to be able to run the command.
 
 ```bash
@@ -51,7 +55,22 @@ era5cli hourly \
     surface_net_thermal_radiation mean_surface_sensible_heat_flux mean_surface_latent_heat_flux \
     surface_pressure total_precipitation \
     --startyear 1995 --endyear 2020 --levels surface \
-    --area 60 -140 15 -55 --overwrite --threads 6
+    --area 60 -140 15 -55
+```
+
+#### Monthly data (CarbonTracker model)
+For CarbonTracker only monthly data is required. For this data the required storage is 4.2 GB.
+
+Change to the desired folder and run:
+```bash
+era5cli monthly \
+    --variables 2m_temperature 2m_dewpoint_temperature surface_net_solar_radiation \
+    surface_net_thermal_radiation mean_surface_sensible_heat_flux mean_surface_latent_heat_flux \
+    type_of_low_vegetation type_of_high_vegetation \
+    surface_pressure total_precipitation \
+    type_of_low_vegetation type_of_high_vegetation \
+    --startyear 2000 --endyear 2020 --levels surface \
+    --area 60 -140 15 -55
 ```
 
 ### Fluxnet
