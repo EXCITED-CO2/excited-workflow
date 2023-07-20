@@ -6,7 +6,7 @@ This repository serves to reproduce the workflow of Conor's MSc thesis.
 
 Install Python 3.10 for your operating system.
 
-From within the `scratch` repository's main folder do:
+Within the `scratch` repository's main folder do:
 
 ```bash
 python -m venv .venv
@@ -43,13 +43,12 @@ The CarbonTracker data is available from NOAA's Global Monitoring Laboratory. Yo
 - [The monthly average carbon flux file (~500 MB)](https://gml.noaa.gov/aftp//products/carbontracker/co2/CT2022/fluxes/monthly/CT2022.flux1x1-monthly.nc)
 
 ### ERA5
-With [era5cli](https://github.com/eWaterCycle/era5cli) the ERA5 data can be downloaded using the following command.
-Do `pip install era5cli` to be able to run the command.
-
 #### Hourly data (Fluxnet model)
 Do note that this is a lot of data (~230 GB), and the download will take a long time. 
 
 Change to the folder where you want and run the following command:
+With [era5cli](https://github.com/eWaterCycle/era5cli) the ERA5 data can be downloaded using the following command. Do note that this is a lot of data (~230 GB), and the download will take a long time. Do `pip install era5cli` to be able to run the command.
+
 ```bash
 era5cli hourly \
     --variables 2m_temperature 2m_dewpoint_temperature surface_net_solar_radiation \
@@ -71,6 +70,7 @@ era5cli monthly \
     surface_pressure total_precipitation \
     type_of_low_vegetation type_of_high_vegetation \
     --startyear 2000 --endyear 2020 --levels surface \
+    --area 60 -140 15 -55
 ```
 
 ### Fluxnet
