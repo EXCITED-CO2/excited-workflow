@@ -1,4 +1,4 @@
-scikit-learn
+scikit-learn==1.2.2
 pandas
 openpyxl # Excel file compatibility.
 xarray
@@ -9,3 +9,4 @@ matplotlib
 flox # Makes xarray groupby (and resample) faster.
 timezonefinder
 pycaret
+lightgbm==3.3.5
