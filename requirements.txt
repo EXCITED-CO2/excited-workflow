@@ -10,3 +10,4 @@ flox # Makes xarray groupby (and resample) faster.
 timezonefinder
 pycaret
 lightgbm==3.3.5
+bottleneck # required for some xarray functionality
