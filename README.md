@@ -1,5 +1,31 @@
 This repository serves to reproduce the workflow of Conor's MSc thesis.
 
+# EXCITED workflow
+
+The following flowchart lays out the workflow of EXCITED. Two models are trained, the first one on (hourly)
+```mermaid
+graph TD;
+    monthlymodel(Monthly ML model);
+    input[(ERA5, MODIS, etc.)];
+    fluxnet[(Fluxnet)];
+    carbontracker[(CarbonTracker)];
+    hourlymodel(Hourly model);
+    dailydataset["Hourly fluxnet NEE\n(biased in long term)"];
+    hourlymodel(Hourly ML model);
+
+    input-->monthlymodel;
+    fluxnet-->hourlymodel;
+    carbontracker-->monthlymodel;
+    input-->hourlymodel;
+    hourlymodel-->dailydataset;
+    input-->mp;
+    monthlymodel-->mp[(Monthly NEE\ndataset)];
+    dailydataset-->hpf([high pass filter]);
+    hpf-->dailyd[(Final daily\nNEE dataset)];
+    mp-->dailyd;
+    input-->dailydataset;
+```
+
 # Getting started
 
 ## Setting up your environment
