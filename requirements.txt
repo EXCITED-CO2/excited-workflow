@@ -12,3 +12,4 @@ pycaret
 lightgbm==3.3.5
 skl2onnx
 onnxruntime
+onnxmltools
