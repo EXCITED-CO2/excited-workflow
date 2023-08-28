@@ -73,6 +73,11 @@ era5cli monthly \
     --area 60 -140 15 -55
 ```
 
+### SPEI
+
+Standardized Precipitation-Evapotranspiration Index, which in short is SPEI, is a global gridded dataset at time scales between 1 and 48 months and spatial resolution of 0.5 deg lat/lon. It can be downloaded from the following link:
+https://digital.csic.es/handle/10261/288226
+
 ### Fluxnet
 
 The Ameriflux data was downloaded from the following link https://ameriflux.lbl.gov/data/download-data/
