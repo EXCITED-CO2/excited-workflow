@@ -7,7 +7,7 @@ from src import utils
 
 
 def load_spei_data(path: Path | str) -> xr.Dataset:
-    ds = xr.open_dataset(path, chunks={"time": -1, "lat": 1, "lon": 1})
+    ds = xr.open_dataset(path)
     ds = utils.convert_timestamps(ds)
     ds = ds.rename({"lat": "latitude", "lon": "longitude"})
 
