@@ -24,14 +24,19 @@ def load_modis_data(path: Path) -> xr.Dataset:
         dataset = xr.open_dataset(file)
         time = "-".join(file.stem.split("_")[-2:])
         dataset["time"] = np.datetime64(time)
+        dataset = dataset.rename_dims({"lat": "latitude", "lon": "longitude"})
         list_datasets.append(dataset)
 
-    dataset_merge = xr.concat(list_datasets, dim="time").sortby("time")
+    dataset_merge = (
+        xr.concat(list_datasets, dim="time")
+        .sortby("time")
+        .chunk(chunks={"time": -1, "latitude": 1, "longitude": 1})
+    )
     # raw data does not contain lat/lon coordinates, we need to add them
     lats = np.arange(0, 180, 0.5) - 89.75
     lons = np.arange(0, 360, 0.5) - 179.75
     dataset = dataset_merge.assign_coords(
-        latitude=("lat", lats), longitude=("lon", lons)
+        latitude=("latitude", lats), longitude=("longitude", lons)
     )
 
     return dataset
