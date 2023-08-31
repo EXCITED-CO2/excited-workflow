@@ -9,7 +9,7 @@ from flox import Aggregation
 import flox.xarray
 
 
-def regrid(ds_land_cover, ds_target):
+def regrid(ds_land_cover: xr.Dataset, ds_target: xr.Dataset) -> xr.Dataset:
     """Regrid land cover data.
 
     For downscaling, the regridding is performed with nearest neighbour method.
@@ -18,8 +18,21 @@ def regrid(ds_land_cover, ds_target):
 
     Note that currently this approach only supports structured grids. And the target
     grid should not exceed the boundary of input land cover dataset.
+
+    For both datasets, latitude and longitude coordinates must be sorted as
+    monotonically increase.
+
+    Args:
+        ds_land_cover: land cover dataset with latitude (`lat`) and longitude (`lon`)
+                       coordinates.
+        ds_target: dataset containing target grid for regridding, must contain
+                   latitude (`lat`) and longitude (`lon`) coordinates.
+
+    Returns:
+        xarray.dataset with regridded land cover categorical data.
     """
-    _boundary_check(ds_land_cover, ds_target)
+    _boundary_check(ds_land_cover["lat"].values, ds_target["lat"].values)
+    _boundary_check(ds_land_cover["lon"].values, ds_target["lon"].values)
     # get resolution
     (cell_lat_land_cover, cell_lon_land_cover) = infer_resolution(ds_land_cover)
     (cell_lat_target, cell_lon_target) = infer_resolution(ds_target)
@@ -35,7 +48,12 @@ def regrid(ds_land_cover, ds_target):
     return ds_land_cover_regrid
 
 
-def upsample(ds_land_cover, ds_target, cell_lat_target, cell_lon_target):
+def upsample(
+    ds_land_cover: xr.Dataset,
+    ds_target: xr.Dataset,
+    cell_lat_target: float,
+    cell_lon_target: float,
+) -> xr.Dataset:
     """Upsampling of land cover with most common label approach.
 
     The implementation includes two steps:
@@ -57,6 +75,10 @@ def upsample(ds_land_cover, ds_target, cell_lat_target, cell_lon_target):
     Args:
         ds_land_cover: land cover dataset with latitude (`lat`) and longitude (`lon`)
                        coordinates.
+        ds_target: dataset containing target grid for regridding, must contain
+                   latitude (`lat`) and longitude (`lon`) coordinates.
+        cell_lat_target: resolution of latitude from target grid.
+        cell_lon_target: resolution of lontitude from target grid.
 
     Returns:
         xarray.dataset with regridded land cover categorical data.
@@ -118,7 +140,7 @@ def _construct_intervals(coord: np.ndarray, step_size: float) -> pd.IntervalInde
 
 def _most_common_label(neighbors: np.ndarray) -> int:
     """Find the most common label in a neighborhood.
-    
+
     Note that if more than one labels have the same frequency which is the highest,
     then the first label in the list will be picked.
     """
@@ -161,7 +183,22 @@ def _custom_grouped_reduction(
     )
 
 
-def _create_ds_grid(ds_land_cover, ds_target):
+def _create_ds_grid(ds_land_cover: xr.Dataset, ds_target: xr.Dataset) -> xr.Dataset:
+    """Create empty/dummy dataset with target grid.
+
+    Also copy the relevant attributes from given land cover dataset.
+    The variable name of land cover must be "lccs_class".
+
+
+    Args:
+        ds_land_cover: land cover dataset with latitude (`lat`) and longitude (`lon`)
+                       coordinates. 
+        ds_target: dataset containing target grid for regridding, must contain
+                   latitude (`lat`) and longitude (`lon`) coordinates.
+
+    Returns:
+        xarray.dataset with target grid and dummy land cover variable.
+    """
     lat = ds_target["lat"].values
     lon = ds_target["lon"].values
     time = ds_land_cover["time"].values
@@ -179,11 +216,12 @@ def _create_ds_grid(ds_land_cover, ds_target):
         attrs=dict(description="Regridded land cover dataset."),
     )
     ds_grid.attrs.update(ds_land_cover.attrs)
-    ds_grid["lccs_class"].attrs.update(ds_land_cover['lccs_class'].attrs)
+    ds_grid["lccs_class"].attrs.update(ds_land_cover["lccs_class"].attrs)
 
     return ds_grid
 
 
-def _boundary_check(ds_land_cover, ds_target):
-    """Check if target grid can be covered by grid of input dataset. """
-    pass
+def _boundary_check(ds_coord: np.ndarray, ds_target_coord: np.ndarray) -> None:
+    """Check if target grid can be covered by grid of input dataset."""
+    if ds_target_coord.min() < ds_coord.min() or ds_target_coord.max() > ds_coord.max():
+        raise ValueError("The original grid can not cover the target grid!")
