@@ -38,7 +38,7 @@ def regrid(ds_land_cover: xr.Dataset, ds_target: xr.Dataset) -> xr.Dataset:
     (cell_lat_target, cell_lon_target) = infer_resolution(ds_target)
     # upscaling case - zonal statistics of most common class
     if cell_lat_land_cover < cell_lat_target and cell_lon_land_cover < cell_lon_target:
-        ds_land_cover_regrid = upsample(
+        ds_land_cover_regrid = upsample_regrid(
             ds_land_cover, ds_target, cell_lat_target, cell_lon_target
         )
     # downscaling case - nearest neighbour
@@ -48,7 +48,7 @@ def regrid(ds_land_cover: xr.Dataset, ds_target: xr.Dataset) -> xr.Dataset:
     return ds_land_cover_regrid
 
 
-def upsample(
+def upsample_regrid(
     ds_land_cover: xr.Dataset,
     ds_target: xr.Dataset,
     cell_lat_target: float,
@@ -71,6 +71,10 @@ def upsample(
     API. Therefore this function also depends on `numpy_groupies`. For more information,
     check the following example:
     https://flox.readthedocs.io/en/latest/user-stories/custom-aggregations.html
+
+    Note that this module can not handle large dataset if it does not fit into the
+    memory. In that case, please first coarsen the land cover data with the `coarse`
+    function and then apply the regridder.
 
     Args:
         ds_land_cover: land cover dataset with latitude (`lat`) and longitude (`lon`)
@@ -192,7 +196,7 @@ def _create_ds_grid(ds_land_cover: xr.Dataset, ds_target: xr.Dataset) -> xr.Data
 
     Args:
         ds_land_cover: land cover dataset with latitude (`lat`) and longitude (`lon`)
-                       coordinates. 
+                       coordinates.
         ds_target: dataset containing target grid for regridding, must contain
                    latitude (`lat`) and longitude (`lon`) coordinates.
 
@@ -225,3 +229,81 @@ def _boundary_check(ds_coord: np.ndarray, ds_target_coord: np.ndarray) -> None:
     """Check if target grid can be covered by grid of input dataset."""
     if ds_target_coord.min() < ds_coord.min() or ds_target_coord.max() > ds_coord.max():
         raise ValueError("The original grid can not cover the target grid!")
+
+
+def coarsen(
+    ds: xr.Dataset, coarse_factor_lat: int, coarse_factor_lon: int
+) -> xr.Dataset:
+    """Coarsen land cover data with parallel computing.
+
+    Args:
+        ds: land cover dataset to be corsen, with latitude (`lat`) and longitude (`lon`)
+                       coordinates.
+        coarse_factor_lat: determine how many pixels will form a super-pixel for lat.
+        coarse_factor_lon: determine how many pixels will form a super-pixel for lon.
+
+        Note that the coarse factor should ensure that the latitude and longitude of
+        input dataset can be divided by this factor without remainder.
+
+    Returns:
+        xarray.dataset of land cover on coarsen grid.
+    """
+
+    ds = ds.chunk({"lat": coarse_factor_lat, "lon": coarse_factor_lon})
+    lat_coarse = _avg_over_n_elements(ds["lat"].values, coarse_factor_lat)
+    lon_coarse = _avg_over_n_elements(ds["lon"].values, coarse_factor_lon)
+    reference_time = ds["time"].data
+    ds_template = _map_blocks_template(reference_time, lat_coarse, lon_coarse)
+    ds_coarse = ds["lccs_class"].map_blocks(
+        _most_common_label_dataarray,
+        args=[reference_time],
+        template=ds_template["lccs_class"].chunk({"lat": 1, "lon": 1}),
+    )
+
+    return ds_coarse.to_dataset()
+
+
+def _map_blocks_template(
+    reference_time: np.ndarray, lat_coarse: np.ndarray, lon_coarse: np.ndarray
+) -> xr.Dataset:
+    """Create template for xarray map blocks function."""
+    ds_template = xr.Dataset(
+        {
+            "lccs_class": (
+                ("time", "lat", "lon"),
+                np.ones((1, len(lat_coarse), len(lon_coarse))),
+            )
+        },
+        coords={
+            "time": reference_time,
+            "lat": lat_coarse,
+            "lon": lon_coarse,
+        },
+    )
+    return ds_template
+
+
+def _avg_over_n_elements(input_array: np.array, n: int) -> np.ndarray:
+    """Average over n elements of 1-D array."""
+    return np.average(input_array.reshape(-1, n), axis=1)
+
+
+def _most_common_label_dataarray(
+    neighbors: np.ndarray, reference_time: np.ndarray
+) -> xr.Dataarray:
+    """Create customized function for map_block to pick up most common label.
+
+    This function is similar to _most_common_label, but will return an data array
+    to satisfy the map_block function.
+    """
+    label = _most_common_label(neighbors)
+    da = xr.DataArray(
+        data=label.reshape(1, 1, 1),
+        dims=["time", "lat", "lon"],
+        coords={
+            "time": reference_time,
+            "lat": np.array([np.mean(neighbors["lat"].values)]),
+            "lon": np.array([np.mean(neighbors["lon"].values)]),
+        },
+    )
+    return da
