@@ -237,7 +237,7 @@ def coarsen(
     """Coarsen land cover data with parallel computing.
 
     Args:
-        ds: land cover dataset to be corsen, with latitude (`lat`) and longitude (`lon`)
+        ds: land cover dataset to be coarsened, with latitude (`lat`) and longitude (`lon`)
                        coordinates.
         coarse_factor_lat: determine how many pixels will form a super-pixel for lat.
         coarse_factor_lon: determine how many pixels will form a super-pixel for lon.
@@ -290,7 +290,7 @@ def _avg_over_n_elements(input_array: np.array, n: int) -> np.ndarray:
 
 def _most_common_label_dataarray(
     neighbors: np.ndarray, reference_time: np.ndarray
-) -> xr.Dataarray:
+) -> xr.DataArray:
     """Create customized function for map_block to pick up most common label.
 
     This function is similar to _most_common_label, but will return an data array
