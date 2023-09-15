@@ -108,6 +108,15 @@ Go through the following steps:
 5. Download the zip files for all sites, as well as the metadata file `AMF_AA-Flx_FLUXNET-BIF_CCBY4_20221210.xlsx`.
    - Move all the downloaded zip files to a single folder
 
+### MODIS
+An introductiona about the MODIS Vegetation Index Products (NDVI and EVI) can be found [here](https://modis.gsfc.nasa.gov/data/dataprod/mod13.php).
+
+MODIS data can be retrieved via the following ways:
+- Via the AρρEEARS API (https://appeears.earthdatacloud.nasa.gov/api/?python#introduction)
+- Through web service (https://modis.ornl.gov/data/modis_webservice.html)
+- Using `MODISTools` (https://cran.r-project.org/web/packages/MODISTools/index.html)
+
+We recommend users to download MODIS data with AρρEEARS API.
 
 ## Run the notebooks
 Now you can run the notebooks.
