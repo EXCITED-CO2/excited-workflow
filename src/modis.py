@@ -1,11 +1,12 @@
 """Ingest MODIS data."""
 
 from pathlib import Path
+from typing import Union
 import xarray as xr
 import numpy as np
 
 
-def load_modis_data(path: Path) -> xr.Dataset:
+def load_modis_data(path: Union[Path, str]) -> xr.Dataset:
     """Load and ingest modis data.
 
     This function loads raw MODIS data files and merge them into one dataset.
@@ -18,6 +19,8 @@ def load_modis_data(path: Path) -> xr.Dataset:
     Returns:
         An aggregated xarray dataset
     """
+    if isinstance(path, str):
+        path = Path(path)
     list_files = list(path.glob("NIRv_global_*.nc"))
     list_datasets = []
     for file in list_files:

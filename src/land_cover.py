@@ -36,6 +36,13 @@ def regrid(ds_land_cover: xr.Dataset, ds_target: xr.Dataset) -> xr.Dataset:
     # get resolution
     (cell_lat_land_cover, cell_lon_land_cover) = infer_resolution(ds_land_cover)
     (cell_lat_target, cell_lon_target) = infer_resolution(ds_target)
+    # slice the input land_cover based on field size to save computation time
+    slice_range = {"lat": slice(ds_target["lat"].min().values - cell_lat_target,
+                                ds_target["lat"].max().values + cell_lat_target),
+                   "lon": slice(ds_target["lon"].min().values - cell_lon_target,
+                                ds_target["lon"].max().values + cell_lon_target),
+                    }
+    ds_land_cover = ds_land_cover.sel(slice_range)
     # upscaling case - zonal statistics of most common class
     if cell_lat_land_cover < cell_lat_target and cell_lon_land_cover < cell_lon_target:
         ds_land_cover_regrid = upsample_regrid(
