@@ -73,6 +73,26 @@ era5cli monthly \
     --area 60 -140 15 -55
 ```
 
+### ERA5-land
+Similar to ERA5, ERA5-land dataset can be retrieved using `era5cli` as well. For instance:
+```bash
+era5cli monthly \
+    --variables skin_temperature soil_temperature_level_1 soil_temperature_level_2 soil_temperature_level_3 \
+    soil_temperature_level_4 volumetric_soil_water_layer_1 \
+    volumetric_soil_water_layer_2 volumetric_soil_water_layer_3 \
+    volumetric_soil_water_layer_4 \
+    --startyear 2000 --endyear 2020 --land --levels surface \
+    --area 60 -140 15 -55
+```
+
+### Land cover
+Land cover classification gridded map describes the land surface into 22 classes. The data is available [here](https://cds.climate.copernicus.eu/cdsapp#!/dataset/satellite-land-cover?tab=overview) and it can be downloaded via CDS.
+
+### SPEI
+
+Standardized Precipitation-Evapotranspiration Index, which in short is SPEI, is a global gridded dataset at time scales between 1 and 48 months and spatial resolution of 0.5 deg lat/lon. It can be downloaded from the following link:
+https://digital.csic.es/handle/10261/288226
+
 ### Fluxnet
 
 The Ameriflux data was downloaded from the following link https://ameriflux.lbl.gov/data/download-data/
