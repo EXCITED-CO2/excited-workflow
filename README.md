@@ -1,5 +1,3 @@
-This repository serves to reproduce the workflow of Conor's MSc thesis.
-
 # EXCITED workflow
 
 The following flowchart lays out the workflow of EXCITED:
