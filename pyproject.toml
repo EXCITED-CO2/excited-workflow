@@ -1,0 +1,88 @@
+[build-system]
+requires = ["hatchling>=1.8.0", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "src/excited_workflow/__init__.py"
+
+[project]
+name = "excited-workflow"
+description = " A Machine Learning workflow to produce a dataset of global net ecosystem CO2 exchange fluxes."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.10, <3.12"
+authors = [
+  {email = "b.schilperoort@esciencecenter.nl"},
+  {name = "Bart Schilperoort, Yang Liu"}
+]
+maintainers = [
+  {name = "Bart Schilperoort", email = "b.schilperoort@esciencecenter.nl"},
+  {name = "Yang Liu", email = "y.liu@esciencecenter.nl"},
+]
+keywords = [
+  "machine learning",
+  "co2 exchange",
+  "NEE",
+  "GPP",
+]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Natural Language :: English",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+]
+dependencies = [
+    "scikit-learn==1.2.2",
+    "lightgbm==3.3.5",
+    "pandas",
+    "openpyxl", # Excel file compatibility.
+    "xarray",
+    "dask[distributed]",
+    "bokeh<3",
+    "netcdf4",
+    "matplotlib",
+    "timezonefinder",
+    "pycaret",
+    "skl2onnx",
+    "onnxruntime",
+    "onnxmltools",
+    "flox", # Makes xarray groupby (and resample) faster.
+    "bottleneck", # required for some xarray functionality.
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+dev = [
+  "hatch",
+  "ruff",
+]
+docs = [
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocs-gen-files",
+]
+
+[tool.ruff]
+select = ["E", "F", "B", "D", "C90", "I", "N", "UP", "PLE", "PLR", "PLW"]
+extend-select = ["D401", "D400", "D404", "TID252"]
+ignore = ["PLR2004", "PLR0913", "N813"]
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+target-version = "py310"
+line-length = 88
+exclude = ["docs", "build"]
+
+[tool.ruff.per-file-ignores]
+"tests/**" = ["D"]
+
+[tool.ruff.pydocstyle]
+convention = "google"
+
+[tool.ruff.isort]
+known-first-party = ["excited_workflow"]
+force-single-line = true
