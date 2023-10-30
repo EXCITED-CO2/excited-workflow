@@ -1,7 +1,6 @@
-import xarray as xr
 import numpy as np
 import pandas as pd
-from typing import Optional
+import xarray as xr
 
 
 def _stacked_ds_to_df(ds: xr.Dataset, indices: np.ndarray) -> pd.DataFrame:
@@ -12,7 +11,7 @@ def _stacked_ds_to_df(ds: xr.Dataset, indices: np.ndarray) -> pd.DataFrame:
 
 
 def create_train_test_dataframes(
-    ds: xr.Dataset, test_size: float, random_seed: Optional[int] = None
+    ds: xr.Dataset, test_size: float, random_seed: int | None = None
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Create training and testing dataframes, with reproducable random seed.
 
@@ -31,7 +30,7 @@ def create_train_test_dataframes(
         np.random.seed(random_seed)
     random_data = np.random.rand(stacked["latlon"].size)
 
-    training_indices = random_data <= np.percentile(random_data, 100*(1 - test_size))
+    training_indices = random_data <= np.percentile(random_data, 100 * (1 - test_size))
     test_indices = (1 - training_indices).astype(bool)
 
     df_train = _stacked_ds_to_df(stacked, training_indices)

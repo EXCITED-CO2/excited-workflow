@@ -1,12 +1,12 @@
 """Ingest MODIS data."""
 
 from pathlib import Path
-from typing import Union
-import xarray as xr
+
 import numpy as np
+import xarray as xr
 
 
-def load_modis_data(path: Union[Path, str]) -> xr.Dataset:
+def load_modis_data(path: Path | str) -> xr.Dataset:
     """Load and ingest modis data.
 
     This function loads raw MODIS data files and merge them into one dataset.
@@ -16,6 +16,7 @@ def load_modis_data(path: Union[Path, str]) -> xr.Dataset:
 
     Args:
         path: path to the directory containing raw netcdf files.
+
     Returns:
         An aggregated xarray dataset
     """

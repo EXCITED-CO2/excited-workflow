@@ -2,7 +2,7 @@ import re
 import zipfile
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -83,8 +83,8 @@ def read_ameriflux_csv(
     fluxnet_zip_folder: Path,
     site_tz_offset: np.timedelta64,
     variables: list[str],
-    quality_flag: Optional[str] = None,
-    minimum_qc_value: Optional[int] = None,
+    quality_flag: str | None = None,
+    minimum_qc_value: int | None = None,
 ) -> xr.Dataset:
     """Read the fluxnet site's FULLSET csv file, and extract the hourly variable.
 
@@ -157,7 +157,6 @@ def find_site_utc_offset(
     Returns:
         Site properties dictionary, with a new key "UTC_offset" for every site.
     """
-
     tf = TimezoneFinder()  # reuse
 
     for site in site_props:
@@ -219,6 +218,7 @@ def preprocess_ameriflux_sites(
     - The sites corresponding to transcom region 2 are determined
     - The required variables are loaded from the csv file, masked for the quality flag,
         have the time corrected to UTC, and are resampled to 1 hour intervals.
+
     Args:
         zip_folder: Folder containing the Ameriflux site .zip files.
         metadata_file: Excel file containing the Ameriflux metadata.

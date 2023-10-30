@@ -1,6 +1,7 @@
 from pathlib import Path
-import xarray as xr
+
 import numpy as np
+import xarray as xr
 
 
 def cftime_to_datetime(data: xr.DataArray) -> np.ndarray:
@@ -41,7 +42,7 @@ def load_and_resample_biomass_data(
         dim="time",
         method="nearest",
         max_gap=np.timedelta64(5, "Y"),
-        fill_value="extrapolate"
+        fill_value="extrapolate",
     )
     ds = ds.rename({"lat": "latitude", "lon": "longitude"})
     return ds

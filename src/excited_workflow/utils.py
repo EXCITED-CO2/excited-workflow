@@ -1,9 +1,11 @@
 """Utils shared by all data sets."""
 
 import warnings
+
 import numpy as np
 import pandas as pd
 import xarray as xr
+
 
 warnings.filterwarnings("ignore")  # suppress nanosecond warning for xarray
 
@@ -22,7 +24,9 @@ def convert_timestamps(dataset: xr.Dataset) -> xr.Dataset:
         [
             pd.Timestamp(year=year, month=month, day=1).to_datetime64()
             for year, month in zip(
-                ds["time"].dt.year.values, ds["time"].dt.month.values
+                ds["time"].dt.year.values,
+                ds["time"].dt.month.values,
+                strict=True,
             )
         ]
     )
