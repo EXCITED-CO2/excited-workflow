@@ -1,4 +1,31 @@
-This repository serves to reproduce the workflow of Conor's MSc thesis.
+# EXCITED workflow
+
+The following flowchart lays out the workflow of EXCITED:
+
+```mermaid
+graph TD;
+    monthlymodel(Monthly ML model);
+    input[(ERA5, MODIS, etc.)];
+    fluxnet[(Fluxnet)];
+    carbontracker[(CarbonTracker)];
+    hourlymodel(Hourly model);
+    dailydataset["hourly fluxnet NEE\n(biased in long term)"];
+    hourlymodel(Hourly ML model);
+    monthlydataset[(Monthly NEE\ndataset)];
+    finaldataset[(Final daily\nNEE dataset)];
+
+    fluxnet-->|target| hourlymodel;
+    input-->|predictors| hourlymodel;
+    input-->|predictors| monthlymodel;
+    carbontracker-->|target| monthlymodel;
+    hourlymodel-->dailydataset;
+    input-->monthlydataset;
+    monthlymodel-->monthlydataset;
+    dailydataset-->hpf([high pass filter]);
+    hpf-->finaldataset;
+    monthlydataset-->finaldataset;
+    input-->dailydataset;
+```
 
 # Getting started
 
@@ -73,6 +100,26 @@ era5cli monthly \
     --area 60 -140 15 -55
 ```
 
+### ERA5-land
+Similar to ERA5, ERA5-land dataset can be retrieved using `era5cli` as well. For instance:
+```bash
+era5cli monthly \
+    --variables skin_temperature soil_temperature_level_1 soil_temperature_level_2 soil_temperature_level_3 \
+    soil_temperature_level_4 volumetric_soil_water_layer_1 \
+    volumetric_soil_water_layer_2 volumetric_soil_water_layer_3 \
+    volumetric_soil_water_layer_4 \
+    --startyear 2000 --endyear 2020 --land --levels surface \
+    --area 60 -140 15 -55
+```
+
+### Land cover
+Land cover classification gridded map describes the land surface into 22 classes. The data is available [here](https://cds.climate.copernicus.eu/cdsapp#!/dataset/satellite-land-cover?tab=overview) and it can be downloaded via CDS.
+
+### SPEI
+
+Standardized Precipitation-Evapotranspiration Index, which in short is SPEI, is a global gridded dataset at time scales between 1 and 48 months and spatial resolution of 0.5 deg lat/lon. It can be downloaded from the following link:
+https://digital.csic.es/handle/10261/288226
+
 ### Fluxnet
 
 The Ameriflux data was downloaded from the following link https://ameriflux.lbl.gov/data/download-data/
@@ -88,6 +135,15 @@ Go through the following steps:
 5. Download the zip files for all sites, as well as the metadata file `AMF_AA-Flx_FLUXNET-BIF_CCBY4_20221210.xlsx`.
    - Move all the downloaded zip files to a single folder
 
+### MODIS
+An introductiona about the MODIS Vegetation Index Products (NDVI and EVI) can be found [here](https://modis.gsfc.nasa.gov/data/dataprod/mod13.php).
+
+MODIS data can be retrieved via the following ways:
+- Via the AρρEEARS API (https://appeears.earthdatacloud.nasa.gov/api/?python#introduction)
+- Through web service (https://modis.ornl.gov/data/modis_webservice.html)
+- Using `MODISTools` (https://cran.r-project.org/web/packages/MODISTools/index.html)
+
+We recommend users to download MODIS data with AρρEEARS API.
 
 ## Run the notebooks
 Now you can run the notebooks.
