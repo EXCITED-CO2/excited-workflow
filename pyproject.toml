@@ -86,3 +86,4 @@ convention = "google"
 [tool.ruff.isort]
 known-first-party = ["excited_workflow"]
 force-single-line = true
+lines-after-imports = 2

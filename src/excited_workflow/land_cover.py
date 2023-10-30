@@ -1,12 +1,11 @@
 """Ingest land cover data."""
 
+import flox.xarray
 import numpy as np
 import numpy_groupies as npg
 import pandas as pd
 import xarray as xr
-import xarray_regrid  # Importing this will make Dataset.regrid accessible.
 from flox import Aggregation
-import flox.xarray
 
 
 def regrid(ds_land_cover: xr.Dataset, ds_target: xr.Dataset) -> xr.Dataset:
@@ -37,11 +36,16 @@ def regrid(ds_land_cover: xr.Dataset, ds_target: xr.Dataset) -> xr.Dataset:
     (cell_lat_land_cover, cell_lon_land_cover) = infer_resolution(ds_land_cover)
     (cell_lat_target, cell_lon_target) = infer_resolution(ds_target)
     # slice the input land_cover based on field size to save computation time
-    slice_range = {"lat": slice(ds_target["lat"].min().values - cell_lat_target,
-                                ds_target["lat"].max().values + cell_lat_target),
-                   "lon": slice(ds_target["lon"].min().values - cell_lon_target,
-                                ds_target["lon"].max().values + cell_lon_target),
-                    }
+    slice_range = {
+        "lat": slice(
+            ds_target["lat"].min().values - cell_lat_target,
+            ds_target["lat"].max().values + cell_lat_target,
+        ),
+        "lon": slice(
+            ds_target["lon"].min().values - cell_lon_target,
+            ds_target["lon"].max().values + cell_lon_target,
+        ),
+    }
     ds_land_cover = ds_land_cover.sel(slice_range)
     # upscaling case - zonal statistics of most common class
     if cell_lat_land_cover < cell_lat_target and cell_lon_land_cover < cell_lon_target:
@@ -117,7 +121,7 @@ def upsample_regrid(
 
 def infer_resolution(dataset: xr.Dataset) -> tuple[float, float]:
     """Infer the resolution of a dataset's latitude and longitude coordinates.
-    (zampy.utils.regrid)
+    (zampy.utils.regrid).
 
     Args:
         dataset: dataset with latitude and longitude coordinates.
@@ -166,7 +170,7 @@ def _custom_grouped_reduction(
     axis: int = -1,
     size: int = None,
     fill_value=None,
-    dtype=None
+    dtype=None,
 ) -> np.ndarray:
     """Custom grouped reduction for flox.Aggregation to get most common label.
 
@@ -244,8 +248,8 @@ def coarsen(
     """Coarsen land cover data with parallel computing.
 
     Args:
-        ds: land cover dataset to be coarsened, with latitude (`lat`) and longitude (`lon`)
-                       coordinates.
+        ds: land cover dataset to be coarsened, with latitude (`lat`) and longitude
+            (`lon`) coordinates.
         coarse_factor_lat: determine how many pixels will form a super-pixel for lat.
         coarse_factor_lon: determine how many pixels will form a super-pixel for lon.
 
@@ -255,7 +259,6 @@ def coarsen(
     Returns:
         xarray.dataset of land cover on coarsen grid.
     """
-
     ds = ds.chunk({"lat": coarse_factor_lat, "lon": coarse_factor_lon})
     lat_coarse = _avg_over_n_elements(ds["lat"].values, coarse_factor_lat)
     lon_coarse = _avg_over_n_elements(ds["lon"].values, coarse_factor_lon)
