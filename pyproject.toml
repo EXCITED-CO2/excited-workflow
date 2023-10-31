@@ -46,6 +46,7 @@ dependencies = [
     "bokeh<3",
     "netcdf4",
     "matplotlib",
+    "yaml",
     "timezonefinder",
     "pycaret",
     "skl2onnx",
@@ -53,6 +54,7 @@ dependencies = [
     "onnxmltools",
     "flox", # Makes xarray groupby (and resample) faster.
     "bottleneck", # required for some xarray functionality.
+    "xarray-regrid",
 ]
 dynamic = ["version"]
 
