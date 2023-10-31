@@ -121,6 +121,7 @@ def upsample_regrid(
 
 def infer_resolution(dataset: xr.Dataset) -> tuple[float, float]:
     """Infer the resolution of a dataset's latitude and longitude coordinates.
+
     (zampy.utils.regrid).
 
     Args:
