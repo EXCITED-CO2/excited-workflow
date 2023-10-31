@@ -145,6 +145,13 @@ MODIS data can be retrieved via the following ways:
 
 We recommend users to download MODIS data with AρρEEARS API.
 
+### Biomass
+The raw biomass data is available on: https://zenodo.org/records/4161694
+
+The biomass netCDF dataset can be retrieved using the following script:
+https://github.com/rubisco-sfa/ILAMB-Data/blob/a4c1c57011472d37e25fcb8336a5f2a470b80fb9/biomass/XuSaatchi/convert.py
+
+
 ## Run the notebooks
 Now you can run the notebooks.
 
