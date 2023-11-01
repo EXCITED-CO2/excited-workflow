@@ -46,7 +46,7 @@ dependencies = [
     "bokeh<3",
     "netcdf4",
     "matplotlib",
-    "yaml",
+    "pyyaml",
     "timezonefinder",
     "pycaret",
     "skl2onnx",
