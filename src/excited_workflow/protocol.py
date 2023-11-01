@@ -1,6 +1,6 @@
 """EXCITED dataset protocol definition."""
 from pathlib import Path
-from typing import Protocol
+from typing import Literal, Protocol
 
 import xarray as xr
 
@@ -15,11 +15,15 @@ class DataSource(Protocol):
 
     @classmethod
     def load(
-        cls, variables: list[str] | None = None, target_grid: xr.Dataset | None = None
+        cls,
+        freq: Literal["monthly", "hourly"],
+        variables: list[str] | None = None,
+        target_grid: xr.Dataset | None = None,
     ) -> xr.Dataset:
         """Load variables from this data source and regrid them to the target grid.
 
         Args:
+            freq: Desired frequency of the dataset. Either "monthly" or "hourly".
             variables: List of variable names which should be downloaded.
             target_grid: Grid to which the data should be regridded to.
 
@@ -39,3 +43,15 @@ class DataSource(Protocol):
     def get_path(self) -> Path:
         """Returns the path to the folder containing this dataset's data."""
         return PATHS_CFG[self.name]
+
+    def get_freq_kw(self, freq: Literal["hourly", "monthly"]) -> Literal["1H", "SM"]:
+        if freq == "hourly":
+            return "1H"
+        elif freq == "monthly":
+            return "SM"
+        else:
+            msg = (
+                "Invalid value for kwarg 'freq': '{freq}'.\n"
+                "Only 'hourly' and 'monthly' are allowed."
+            )
+            raise ValueError(msg)
