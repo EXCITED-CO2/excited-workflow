@@ -59,14 +59,14 @@ def _find_config(fname) -> Path:
 def load_paths_config() -> dict[str, Path]:
     """Load the Zampy data source paths."""
     with _find_config(DATA_PATHS_FNAME).open(mode="r") as f:
-        paths_config: dict = yaml.load(f.read())
+        paths_config: dict = yaml.full_load(f.read())
 
     if not set(EXPECTED_DATASETS).issubset(paths_config.keys()):
         missing_keys = set(EXPECTED_DATASETS) - set(paths_config.keys())
         msg = f"Some dataset paths are missing from the config: {missing_keys}"
         raise ConfigError(msg)
 
-    return {key: Path(val) for key, val in paths_config}
+    return {key: Path(val) for key, val in paths_config.items()}
 
 
 PATHS_CFG = load_paths_config()

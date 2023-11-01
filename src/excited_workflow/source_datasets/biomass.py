@@ -38,8 +38,13 @@ class Biomass(DataSource):
         Returns:
             Prepared dataset.
         """
-        cls.validate_variables(variables)
-        ds = xr.open_dataset(cls.get_path().glob("*.nc"))
+        cls.validate_variables(cls, variables)
+        files = list(cls.get_path(cls).glob("*.nc"))
+        if len(files) == 0:
+            msg = f"No netCDF files found at path '{cls.get_path(cls)}'"
+            raise FileNotFoundError(msg)
+
+        ds = xr.open_mfdataset(files, chunks={"lat": 20, "lon": 20})
 
         ds["time"] = _cftime_to_datetime(ds["time"])
         ds = ds.drop("time_bnds")
