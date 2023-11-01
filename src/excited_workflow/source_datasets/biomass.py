@@ -1,4 +1,5 @@
 """Global biomass dataset."""
+from typing import Literal
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -22,16 +23,20 @@ def _cftime_to_datetime(data: xr.DataArray) -> np.ndarray:
 class Biomass(DataSource):
     """Global biomass dataset."""
 
-    name = "biomass"
-    variable_names = ["biomass"]
+    name: str = "biomass"
+    variable_names: list[str] = ["biomass"]
 
     @classmethod
     def load(
-        cls, variables: list[str] | None = None, target_grid: xr.Dataset | None = None
+        cls,
+        freq: Literal["monthly", "hourly"],
+        variables: list[str] | None = None,
+        target_grid: xr.Dataset | None = None,
     ) -> xr.Dataset:
         """Load variables from this data source and regrid them to the target grid.
 
         Args:
+            freq: Desired frequency of the dataset. Either "monthly" or "hourly".
             variables: List of variable names which should be downloaded.
             target_grid: Grid to which the data should be regridded to.
 
@@ -44,11 +49,17 @@ class Biomass(DataSource):
             msg = f"No netCDF files found at path '{cls.get_path(cls)}'"
             raise FileNotFoundError(msg)
 
+        freq_kw = cls.get_freq_kw(cls, freq)
+
         ds = xr.open_mfdataset(files, chunks={"lat": 20, "lon": 20})
 
-        ds["time"] = _cftime_to_datetime(ds["time"])
+        # Set time to middle of bounds.
+        time_coords = _cftime_to_datetime(ds["time_bnds"].mean(dim="nv"))
         ds = ds.drop("time_bnds")
-        time_range = pd.date_range(start="1995-01-01", end="2022-01-01", freq="1H")
+        ds["time"] = time_coords
+
+        # Extend range to cover fluxnet data
+        time_range = pd.date_range(start="1995-01-01", end="2022-01-01", freq=freq_kw)
         ds = ds.interp(time=time_range, method="linear")
         ds = ds.interpolate_na(
             dim="time",
