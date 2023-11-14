@@ -36,7 +36,7 @@ def load_modis_data(files: list[Path]) -> xr.Dataset:
     dataset_merge = (
         xr.concat(list_datasets, dim="time")
         .sortby("time")
-        .chunk(chunks={"time": -1, "latitude": 1, "longitude": 1})
+        .chunk(chunks={"time": -1, "latitude": 60, "longitude": 60})
     )
     # raw data does not contain lat/lon coordinates, we need to add them
     lats = np.arange(0, 180, 0.5) - 89.75

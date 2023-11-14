@@ -46,7 +46,7 @@ class DataSource(Protocol):
         return PATHS_CFG[self.name]
 
 
-def get_freq_kw(freq: Literal["hourly", "monthly"]) -> Literal["1H", "SM"]:
+def get_freq_kw(freq: Literal["hourly", "monthly"]) -> Literal["1H", "1MS"]:
     """Get the frequency keyword corresponding to the hourly/monthly resampling freq.
 
     Returns:
@@ -55,7 +55,7 @@ def get_freq_kw(freq: Literal["hourly", "monthly"]) -> Literal["1H", "SM"]:
     if freq == "hourly":
         return "1H"
     elif freq == "monthly":
-        return "1SM"
+        return "1MS"
     else:
         msg = (
             "Invalid value for kwarg 'freq': '{freq}'.\n"

@@ -53,7 +53,7 @@ class Biomass(DataSource):
 
         freq_kw = get_freq_kw(freq)
 
-        ds = xr.open_mfdataset(files, chunks={"lat": 20, "lon": 20})
+        ds = xr.open_mfdataset(files, chunks={"lat": 60, "lon": 60})
 
         # Set time to middle of bounds.
         time_coords = _cftime_to_datetime(ds["time_bnds"].mean(dim="nv"))
