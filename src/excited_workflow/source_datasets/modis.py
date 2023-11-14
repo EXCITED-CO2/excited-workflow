@@ -54,9 +54,8 @@ class Modis(DataSource):
     name: str = "modis"
     variable_names: list[str] = ["NDVI", "NIRv"]
 
-    @classmethod
     def load(
-        cls,
+        self,
         freq: Literal["hourly", "monthly"],
         variables: list[str] | None = None,
         target_grid: xr.Dataset | None = None,
@@ -71,11 +70,11 @@ class Modis(DataSource):
         Returns:
             Prepared dataset.
         """
-        cls.validate_variables(cls, variables)
+        self.validate_variables(variables)
 
-        files = list(cls.get_path(cls).glob("*.nc"))
+        files = list(self.get_path().glob("*.nc"))
         if len(files) == 0:
-            msg = f"No netCDF files found at path '{cls.get_path(cls)}'"
+            msg = f"No netCDF files found at path '{self.get_path()}'"
             raise FileNotFoundError(msg)
 
         ds = load_modis_data(files)
@@ -87,7 +86,7 @@ class Modis(DataSource):
         elif freq == "monthly":
             pass
         else:
-            get_freq_kw(cls, freq)
+            get_freq_kw(freq)
 
         if variables is not None:
             ds = ds[variables]

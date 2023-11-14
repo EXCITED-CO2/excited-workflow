@@ -1,4 +1,5 @@
 """EXCITED dataset protocol definition."""
+from abc import abstractmethod
 from pathlib import Path
 from typing import Literal
 from typing import Protocol
@@ -14,9 +15,13 @@ class DataSource(Protocol):
     name: str
     variable_names: list[str]
 
-    @classmethod
+    def __init__(self) -> None:
+        """Initialize the datasource."""
+        return None
+
+    @abstractmethod
     def load(
-        cls,
+        self,
         freq: Literal["monthly", "hourly"],
         variables: list[str] | None = None,
         target_grid: xr.Dataset | None = None,

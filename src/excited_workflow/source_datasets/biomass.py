@@ -28,9 +28,8 @@ class Biomass(DataSource):
     name: str = "biomass"
     variable_names: list[str] = ["biomass"]
 
-    @classmethod
     def load(
-        cls,
+        self,
         freq: Literal["monthly", "hourly"],
         variables: list[str] | None = None,
         target_grid: xr.Dataset | None = None,
@@ -45,10 +44,10 @@ class Biomass(DataSource):
         Returns:
             Prepared dataset.
         """
-        cls.validate_variables(cls, variables)
-        files = list(cls.get_path(cls).glob("*.nc"))
+        self.validate_variables(variables)
+        files = list(self.get_path().glob("*.nc"))
         if len(files) == 0:
-            msg = f"No netCDF files found at path '{cls.get_path(cls)}'"
+            msg = f"No netCDF files found at path '{self.get_path()}'"
             raise FileNotFoundError(msg)
 
         freq_kw = get_freq_kw(freq)
