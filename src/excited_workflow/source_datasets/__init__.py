@@ -10,11 +10,11 @@ from excited_workflow.source_datasets.spei import Spei
 
 
 datasets: dict[str, DataSource] = {
-    "biomass": Biomass,
-    "era5_hourly": ERA5Hourly,
-    "era5_monthly": ERA5Monthly,
-    "era5_land_monthly": ERA5LandMonthly,
-    "copernicus_landcover": LandCover,
-    "modis": Modis,
-    "spei": Spei,
+    "biomass": Biomass(),
+    "era5_hourly": ERA5Hourly(),
+    "era5_monthly": ERA5Monthly(),
+    "era5_land_monthly": ERA5LandMonthly(),
+    "copernicus_landcover": LandCover(),
+    "modis": Modis(),
+    "spei": Spei(),
 }

@@ -16,9 +16,8 @@ class Spei(DataSource):
     name: str = "spei"
     variable_names: list[str] = ["spei"]
 
-    @classmethod
     def load(
-        cls,
+        self,
         freq: Literal["hourly", "monthly"],
         variables: list[str] | None = None,
         target_grid: xr.Dataset | None = None,
@@ -33,11 +32,11 @@ class Spei(DataSource):
         Returns:
             Prepared dataset.
         """
-        cls.validate_variables(cls, variables)
+        self.validate_variables(variables)
 
-        files = list(cls.get_path(cls).glob("*.nc"))
+        files = list(self.get_path().glob("*.nc"))
         if len(files) == 0:
-            msg = f"No netCDF files found at path '{cls.get_path(cls)}'"
+            msg = f"No netCDF files found at path '{self.get_path()}'"
             raise FileNotFoundError(msg)
 
         ds = xr.open_mfdataset(files)
