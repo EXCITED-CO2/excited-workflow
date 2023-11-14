@@ -31,9 +31,16 @@ graph TD;
 
 ## Setting up your environment
 
-Install Python 3.10 for your operating system.
+Install Python 3.10 or Python 3.11 for your operating system.
 
-Within the `scratch` repository's main folder do:
+Clone the workflow to your machine using git:
+
+```bash
+git clone https://github.com/EXCITED-CO2/excited-workflow.git
+cd excited-workflow
+```
+
+Within the `excited-workflow` repository's main folder do:
 
 ```bash
 python -m venv .venv
@@ -45,10 +52,10 @@ This creates a python environment. Activate the environment with:
 source .venv/bin/activate
 ```
 
-Now you can install all the required packages with the following command:
+Now you can install the workflow with the following command:
 
 ```bash
-pip install -r requirements.txt
+pip install -e .
 ```
 
 Additionally, to be able to work with the Jupyter notebooks:
@@ -61,8 +68,35 @@ Now you can run the following command to start jupyter:
 jupyter-notebook
 ```
 
-## Getting the data
+## System setup
+When setting up the excited workflow on a system, you will need to first download the data (see below).
 
+Next you will have to create a config file in either `~/.config/excited/data_paths.yaml` or `/etc/excited/data_paths.yaml`.
+In this config file you have to point the datasets to the right path, for example:
+```yaml
+biomass: /data/volume_2/xusaatchi
+copernicus_landcover: /data/volume_2/land_cover
+era5_hourly: /data/volume_2/hourly_era5
+era5_monthly: /data/volume_2/monthly_era5
+era5_land_monthly: /data/volume_2/monthly_era5-land
+modis: /data/volume_2/modis_nirv_v2
+spei: /data/volume_2/spei
+```
+
+## Run the notebooks
+Now you can run the notebooks.
+
+- Start with `preprocess_ameriflux.ipynb`. This notebook will preprocess the Ameriflux data to be in a more useful format.
+- Next you can preprocess the ERA5 data (extract data per site) with `preprocess_ERA5_sites.ipynb`.
+- Now you can train the ML model on the ERA5 and Fluxnet data with `workflow_fluxnet.ipynb`.
+- The data loading and model training for the CarbonTracker model is explained in `workflow_carbon_tracker.ipynb`.
+
+<hr>
+
+<hr>
+
+
+## Downloading the data
 ### CarbonTracker
 The CarbonTracker data is available from NOAA's Global Monitoring Laboratory. You will need the following files:
 
@@ -151,10 +185,3 @@ The raw biomass data is available on: https://zenodo.org/records/4161694
 The biomass netCDF dataset can be retrieved using the following script:
 https://github.com/rubisco-sfa/ILAMB-Data/blob/a4c1c57011472d37e25fcb8336a5f2a470b80fb9/biomass/XuSaatchi/convert.py
 
-
-## Run the notebooks
-Now you can run the notebooks.
-
-- Start with `preprocess_ameriflux.ipynb`. This notebook will preprocess the Ameriflux data to be in a more useful format.
-- Next you can preprocess the ERA5 data (extract data per site) with `preprocess_ERA5_sites.ipynb`.
-- Now you can train the ML model on the ERA5 and Fluxnet data with `training_a_model.ipynb`.
