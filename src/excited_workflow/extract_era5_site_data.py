@@ -1,3 +1,4 @@
+"""Routines to extract per site data from ERA5."""
 from pathlib import Path
 
 import pandas as pd
