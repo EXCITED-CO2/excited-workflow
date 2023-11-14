@@ -1,3 +1,4 @@
+"""Fluxnet processing utils."""
 import re
 import zipfile
 from datetime import datetime
@@ -52,7 +53,7 @@ def read_ameriflux_site_properties(
 
     Args:
         metadata_file: Metadata .xlsx file.
-        sitename: Name of the site.
+        sitenames: Names of the sites.
         properties: Properties to extract (e.g. ["LOCATION_LAT", ...])
 
     Returns:

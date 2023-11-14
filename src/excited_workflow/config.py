@@ -37,6 +37,7 @@ EXPECTED_DATASETS = [
     "copernicus_landcover",
     "era5_hourly",
     "era5_monthly",
+    "era5_land_monthly",
     "modis",
     "spei",
 ]

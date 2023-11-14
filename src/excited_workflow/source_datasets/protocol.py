@@ -1,6 +1,7 @@
 """EXCITED dataset protocol definition."""
 from pathlib import Path
-from typing import Literal, Protocol
+from typing import Literal
+from typing import Protocol
 
 import xarray as xr
 
@@ -44,14 +45,20 @@ class DataSource(Protocol):
         """Returns the path to the folder containing this dataset's data."""
         return PATHS_CFG[self.name]
 
-    def get_freq_kw(self, freq: Literal["hourly", "monthly"]) -> Literal["1H", "SM"]:
-        if freq == "hourly":
-            return "1H"
-        elif freq == "monthly":
-            return "SM"
-        else:
-            msg = (
-                "Invalid value for kwarg 'freq': '{freq}'.\n"
-                "Only 'hourly' and 'monthly' are allowed."
-            )
-            raise ValueError(msg)
+
+def get_freq_kw(freq: Literal["hourly", "monthly"]) -> Literal["1H", "SM"]:
+    """Get the frequency keyword corresponding to the hourly/monthly resampling freq.
+
+    Returns:
+        Pandas DateOffset string.
+    """
+    if freq == "hourly":
+        return "1H"
+    elif freq == "monthly":
+        return "1SM"
+    else:
+        msg = (
+            "Invalid value for kwarg 'freq': '{freq}'.\n"
+            "Only 'hourly' and 'monthly' are allowed."
+        )
+        raise ValueError(msg)

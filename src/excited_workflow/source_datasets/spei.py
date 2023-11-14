@@ -1,16 +1,13 @@
 """Ingest SPEI data."""
 
-from pathlib import Path
 from typing import Literal
 
-from excited_workflow import utils
-
-import numpy as np
-import pandas as pd
 import xarray as xr
 import xarray_regrid  # noqa: F401
 
-from excited_workflow.protocol import DataSource
+from excited_workflow import utils
+from excited_workflow.source_datasets.protocol import DataSource
+from excited_workflow.source_datasets.protocol import get_freq_kw
 
 
 class Spei(DataSource):
@@ -22,15 +19,14 @@ class Spei(DataSource):
     @classmethod
     def load(
         cls,
-        freq: Literal["1H", "1M"],
+        freq: Literal["hourly", "monthly"],
         variables: list[str] | None = None,
         target_grid: xr.Dataset | None = None,
     ) -> xr.Dataset:
         """Load variables from this data source and regrid them to the target grid.
 
         Args:
-            freq: Desired frequency of the dataset. Either "1H" for hourly, or "1M" for
-                monthly.
+            freq: Desired frequency of the dataset. Either "hourly" or "monthly".
             variables: List of variable names which should be downloaded.
             target_grid: Grid to which the data should be regridded to.
 
@@ -52,7 +48,7 @@ class Spei(DataSource):
         if freq == "monthly":
             ds = ds.resample(time="1MS").mean()
         else:
-            freq_kw = cls.get_freq_kw(cls, freq)
+            freq_kw = get_freq_kw(freq)
             ds = ds.resample(time=freq_kw).interpolate("linear")
 
         if variables is not None:

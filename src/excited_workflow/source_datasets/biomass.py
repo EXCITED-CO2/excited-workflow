@@ -1,11 +1,13 @@
 """Global biomass dataset."""
 from typing import Literal
+
 import numpy as np
 import pandas as pd
 import xarray as xr
 import xarray_regrid  # noqa: F401
 
-from excited_workflow.protocol import DataSource
+from excited_workflow.source_datasets.protocol import DataSource
+from excited_workflow.source_datasets.protocol import get_freq_kw
 
 
 def _cftime_to_datetime(data: xr.DataArray) -> np.ndarray:
@@ -49,7 +51,7 @@ class Biomass(DataSource):
             msg = f"No netCDF files found at path '{cls.get_path(cls)}'"
             raise FileNotFoundError(msg)
 
-        freq_kw = cls.get_freq_kw(cls, freq)
+        freq_kw = get_freq_kw(freq)
 
         ds = xr.open_mfdataset(files, chunks={"lat": 20, "lon": 20})
 
