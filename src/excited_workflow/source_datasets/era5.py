@@ -24,6 +24,7 @@ def shift_era5_longitude(dataset: xr.Dataset) -> xr.Dataset:
 
 class ERA5DataSource(DataSource):
     """ERA5 data source superclass."""
+
     name: str
     variable_names: list[str]
     data_freq: Literal["hourly"] | Literal["monthly"]
