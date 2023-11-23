@@ -145,7 +145,7 @@ class LandCover(DataSource):
             msg = "target_grid is not optional for loading landcover data."
             raise ValueError(msg)
 
-        preprocessed_dir = self.get_path() / "preprocessing2"
+        preprocessed_dir = self.get_path() / "preprocessed"
         preprocessed_dir.mkdir(parents=True, exist_ok=True)
         self.preprocess(preprocessed_dir, target_grid, variables)
 
