@@ -22,7 +22,41 @@ def _cftime_to_datetime(data: xr.DataArray) -> np.ndarray:
     return np.array([np.datetime64(el) for el in data.to_numpy()])
 
 
-def dims_check(dat: xr.Dataset, target: xr.Dataset, var: str) -> bool:
+def regrid(
+    file: Path,
+    target_grid: xr.Dataset,
+    variables: list[str] | None = None,
+) -> xr.Dataset:
+    """Regrids one file to target dataset.
+
+    Args:
+        file: file to regrid
+        variables: List of variable names which should be downloaded.
+        target_grid: Grid to which the data should be regridded to.
+
+    Returns:
+        Regridded Dataset.
+    """
+    ds = xr.open_dataset(file, chunks={"lat": 2000, "lon": 2000})
+
+    # Set time to middle of bounds.
+    time_coords = _cftime_to_datetime(ds["time_bounds"].mean(dim="bounds"))
+    ds = ds.drop("time_bounds")
+    ds["time"] = time_coords
+
+    ds = ds[["lccs_class"]]  # Only take the class variable.
+    ds = ds.sortby(["lat", "lon"])
+    ds = ds.rename({"lat": "latitude", "lon": "longitude"})
+
+    if variables is not None:
+        ds = ds[variables]
+
+    ds = ds.regrid.most_common(target_grid, time_dim="time")
+
+    return ds
+
+
+def check_dims(dat: xr.Dataset, target: xr.Dataset, var: str) -> bool:
     """Check dimensions of two grids are the same.
 
     Args:
@@ -36,45 +70,29 @@ def dims_check(dat: xr.Dataset, target: xr.Dataset, var: str) -> bool:
     return np.allclose(dat[var].to_numpy(), target[var].to_numpy())
 
 
+def valid_regrid_file(name: Path, target: xr.Dataset) -> bool:
+    """Check if file has been regridded properly.
+
+    Args:
+        name: name of file
+        target: Target grid dataset
+
+    Returns:
+        boolean of whether the dimensions are the same as target.
+    """
+    dat = xr.open_dataset(name)
+    if check_dims(dat, target, "latitude") and check_dims(dat, target, "longitude"):
+        dat.close()
+        return True
+
+    return False
+
+
 class LandCover(DataSource):
     """Copernicus land cover dataset."""
 
     name: str = "copernicus_landcover"
     variable_names: list[str] = ["lccs_class"]
-
-    def regrid(
-        self,
-        file: Path,
-        target_grid: xr.Dataset,
-        variables: list[str] | None = None,
-    ) -> xr.Dataset:
-        """Regrids one file to target dataset.
-
-        Args:
-            file: file to regrid
-            variables: List of variable names which should be downloaded.
-            target_grid: Grid to which the data should be regridded to.
-
-        Returns:
-            Regridded Dataset.
-        """
-        ds = xr.open_dataset(file, chunks={"lat": 2000, "lon": 2000})
-
-        # Set time to middle of bounds.
-        time_coords = _cftime_to_datetime(ds["time_bounds"].mean(dim="bounds"))
-        ds = ds.drop("time_bounds")
-        ds["time"] = time_coords
-
-        ds = ds[["lccs_class"]]  # Only take the class variable.
-        ds = ds.sortby(["lat", "lon"])
-        ds = ds.rename({"lat": "latitude", "lon": "longitude"})
-
-        if variables is not None:
-            ds = ds[variables]
-
-        ds = ds.regrid.most_common(target_grid, time_dim="time")
-
-        return ds
 
     def preprocess(
         self,
@@ -99,18 +117,11 @@ class LandCover(DataSource):
         for file in files:
             name = process_path / (file.stem + ".nc")
 
-            if name.is_file() and name.stat().st_size > 0:
-                dat = xr.open_dataset(name)
-                if not (
-                    dims_check(dat, target_grid, "latitude")
-                    and dims_check(dat, target_grid, "longitude")
-                ):
-                    dat.close()
-                    ds = self.regrid(file, target_grid, variables)
-                    ds.to_netcdf(name)
-            else:
-                ds = self.regrid(file, target_grid, variables)
-                ds.to_netcdf(name)
+            if not name.is_file() or not valid_regrid_file(name, target_grid):
+                regrid(file, target_grid, variables).to_netcdf(name)
+                print(
+                    f"'{name}' not found or not valid for target dataset. Regridding."
+                )
 
     def load(
         self,
@@ -134,13 +145,13 @@ class LandCover(DataSource):
             msg = "target_grid is not optional for loading landcover data."
             raise ValueError(msg)
 
-        path = self.get_path() / "preprocessed"
-        path.mkdir(parents=True, exist_ok=True)
-        self.preprocess(path, target_grid, variables)
+        preprocessed_dir = self.get_path() / "preprocessing2"
+        preprocessed_dir.mkdir(parents=True, exist_ok=True)
+        self.preprocess(preprocessed_dir, target_grid, variables)
 
-        files = list(path.glob("*.nc"))
+        files = list(preprocessed_dir.glob("*.nc"))
         if len(files) == 0:
-            msg = f"No netCDF files found at path '{path}'"
+            msg = f"No netCDF files found at path '{preprocessed_dir}'"
             raise FileNotFoundError(msg)
 
         freq_kw = get_freq_kw(freq)
