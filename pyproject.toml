@@ -13,11 +13,12 @@ license = "Apache-2.0"
 requires-python = ">=3.10, <3.12"
 authors = [
   {email = "b.schilperoort@esciencecenter.nl"},
-  {name = "Bart Schilperoort, Yang Liu"}
+  {name = "Bart Schilperoort, Yang Liu, Claire Donnelly"}
 ]
 maintainers = [
   {name = "Bart Schilperoort", email = "b.schilperoort@esciencecenter.nl"},
   {name = "Yang Liu", email = "y.liu@esciencecenter.nl"},
+  {name = "Claire Donnelly", email = "c.donnelly@esciencecenter.nl"}
 ]
 keywords = [
   "machine learning",
