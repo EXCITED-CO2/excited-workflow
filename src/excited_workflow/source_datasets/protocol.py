@@ -47,7 +47,7 @@ class DataSource(Protocol):
             raise KeyError(msg)
 
     def get_path(self) -> Path:
-        """Returns the path to the folder containing this dataset's data."""
+        """Return the path to the folder containing this dataset's data."""
         return PATHS_CFG[self.name]
 
 

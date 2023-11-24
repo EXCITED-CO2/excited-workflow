@@ -25,7 +25,7 @@ class ConfigError(Exception):
 
 
 SYSTEM_CONFIG_DIR = Path("/etc") / "excited"
-USER_HOME_CONFIG_DIR = (
+USER_HOME_CONFIG_DIR: Path = (
     Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "excited"
 )
 DATA_PATHS_FNAME = "data_paths.yaml"
@@ -43,8 +43,8 @@ EXPECTED_DATASETS = [
 ]
 
 
-def _find_config(fname) -> Path:
-    """Returns the path to the config file if found. Else raises a FileNotFoundError."""
+def _find_config(fname: str) -> Path:
+    """Return the path to the config file if found. Else raises a FileNotFoundError."""
     if (USER_HOME_CONFIG_DIR / fname).exists():
         return USER_HOME_CONFIG_DIR / fname
     elif (SYSTEM_CONFIG_DIR / fname).exists():
