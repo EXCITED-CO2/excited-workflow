@@ -49,7 +49,6 @@ dependencies = [
     "matplotlib",
     "pyyaml",
     "timezonefinder",
-    "pycaret",
     "skl2onnx",
     "onnxruntime",
     "onnxmltools",
@@ -60,6 +59,9 @@ dependencies = [
 dynamic = ["version"]
 
 [project.optional-dependencies]
+pycaret = [
+  "pycaret",
+]
 dev = [
   "ruff",
   "mypy",
