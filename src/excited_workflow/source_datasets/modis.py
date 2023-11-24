@@ -81,7 +81,7 @@ class Modis(DataSource):
 
         if freq == "hourly":
             freq_kw = get_freq_kw(freq)
-            ds["time"] = ds["time"] + pd.Timedelta(days=14)
+            ds["time"] = ds["time"].to_numpy() + pd.Timedelta(days=14)
             ds = ds.resample(time=freq_kw).interpolate("linear")
         elif freq == "monthly":
             pass
