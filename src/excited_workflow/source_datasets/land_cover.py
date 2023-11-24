@@ -27,12 +27,12 @@ def regrid(
     target_grid: xr.Dataset,
     variables: list[str] | None = None,
 ) -> xr.Dataset:
-    """Regrids one file to target dataset.
+    """Regrid a land cover netCDF file to a target dataset and return regridded dataset.
 
     Args:
         file: file to regrid
-        variables: List of variable names which should be downloaded.
-        target_grid: Grid to which the data should be regridded to.
+        target_grid: Dataset to which the data should be regridded to.
+        variables: List of variable names which should be regridded.
 
     Returns:
         Regridded Dataset.
@@ -44,7 +44,7 @@ def regrid(
     ds = ds.drop("time_bounds")
     ds["time"] = time_coords
 
-    ds = ds[["lccs_class"]]  # Only take the class variable.
+    ds = ds[["lccs_class"]]
     ds = ds.sortby(["lat", "lon"])
     ds = ds.rename({"lat": "latitude", "lon": "longitude"})
 
@@ -56,18 +56,21 @@ def regrid(
     return ds
 
 
-def check_dims(dat: xr.Dataset, target: xr.Dataset, var: str) -> bool:
-    """Check dimensions of two grids are the same.
+def coord_matches(dat: xr.Dataset, target: xr.Dataset, coord: str) -> bool:
+    """Check coordinates of two grids match.
 
     Args:
         dat: Preprocessed dataset
         target: Target grid dataset
-        var: variable name to compare
+        coord: variable name to compare
 
     Returns:
         boolean of where arrays are the same.
     """
-    return np.allclose(dat[var].to_numpy(), target[var].to_numpy())
+    if dat[coord].size == target[coord].size:
+        return np.allclose(dat[coord].to_numpy(), target[coord].to_numpy())
+
+    return False
 
 
 def valid_regrid_file(name: Path, target: xr.Dataset) -> bool:
@@ -81,10 +84,11 @@ def valid_regrid_file(name: Path, target: xr.Dataset) -> bool:
         boolean of whether the dimensions are the same as target.
     """
     dat = xr.open_dataset(name)
-    if check_dims(dat, target, "latitude") and check_dims(dat, target, "longitude"):
+    if coord_matches(dat, target, "latitude") and coord_matches(
+        dat, target, "longitude"
+    ):
         dat.close()
         return True
-
     return False
 
 
@@ -115,13 +119,14 @@ class LandCover(DataSource):
             raise FileNotFoundError(msg)
 
         for file in files:
-            name = process_path / (file.stem + ".nc")
+            name = process_path / (file.name)
 
             if not name.is_file() or not valid_regrid_file(name, target_grid):
-                regrid(file, target_grid, variables).to_netcdf(name)
                 print(
-                    f"'{name}' not found or not valid for target dataset. Regridding."
+                    f"'{file.name}' not found or not valid for target dataset. "
+                    f"Regridding."
                 )
+                regrid(file, target_grid, variables).to_netcdf(name)
 
     def load(
         self,
