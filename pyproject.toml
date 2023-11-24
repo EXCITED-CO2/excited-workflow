@@ -61,8 +61,8 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 dev = [
-  "hatch",
   "ruff",
+  "mypy",
 ]
 docs = [
     "mkdocs",
