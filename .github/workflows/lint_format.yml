@@ -76,4 +76,4 @@ jobs:
     - name: Install workflow package
       run: python3 -m pip install .[dev]
     - name: Check typing
-      run: mypy src/
+      run: mypy src/ --install-types
