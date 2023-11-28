@@ -13,20 +13,6 @@ import excited_workflow
 from excited_workflow.source_datasets import datasets
 
 
-client = Client()
-
-desired_data = [
-    "biomass",
-    "spei",
-    "modis",
-    "era5_monthly",
-    "era5_land_monthly",
-    "copernicus_landcover"
-]
-
-x_keys = ["d2m", "mslhf", "msshf", "ssr", "str", "t2m", "spei", "NIRv", "skt", "stl1", "swvl1", "lccs_class"]
-y_key = "bio_flux_opt"
-
 def merge_datasets(desired_data: list[str], target: Path) -> xr.Dataset:
     """Merge datasets onto one common grid.
     
@@ -67,7 +53,7 @@ def mask_region(regions: Path,
     return ds_na
 
 
-def create_bins(ds, bin_no):
+def create_bins(ds: xr.Dataset, bin_no: int) -> pd.DataFrame:
     """Create dataframe with different groups."""
     df_train = ds.to_dataframe().dropna()
     bins = bin_no
@@ -80,7 +66,7 @@ def create_bins(ds, bin_no):
     return df_train
 
 
-def train_model(df, x_keys, y_key):
+def train_model(df: pd.DataFrame, x_keys: list[str], y_key: str):
     """Train model on input datasets."""
     df_pycaret = df[x_keys + [y_key]]
     df_reduced = df_pycaret[::10]
@@ -92,12 +78,45 @@ def train_model(df, x_keys, y_key):
     return pycs
 
 
-def validation_model(df_train, bin_no, x_keys, y_key):
+def validation_model(df_train: pd.DataFrame, 
+                     bin_no: int, 
+                     x_keys: list[str], 
+                     y_key: str
+                     ):
     """Validate data."""
     df = df_train[df_train["group"] != bin_no]
     model = train_model(df, x_keys, y_key)
 
     return model
 
-if __name__ == "__main__":
-    ...
+
+def model_statistics(prediction, target):
+    """Calculate RMSE and scatterplot."""
+    #ds = xr.Dataset.from_dataframe(df)
+    rmse = np.sqrt(((prediction - target) ** 2).mean())
+    return rmse
+
+#if __name__ == "__main__":
+#    client = Client()
+#
+#    ds_cb = "/data/volume_2/EXCITED_prepped_data/CT2022.flux1x1-monthly.nc"
+#    ds_regions = "/data/volume_2/EXCITED_prepped_data/regions.nc"
+#
+#    desired_data = [
+#        "biomass",
+#        "spei",
+#        "modis",
+#        "era5_monthly",
+#        "era5_land_monthly",
+#        "copernicus_landcover"
+#    ]
+#
+#    x_keys = ["d2m", "mslhf", "msshf", "ssr", "str", "t2m", "spei", "NIRv", "skt", "stl1", "swvl1", "lccs_class"]
+#    y_key = "bio_flux_opt"
+#
+#    ds_input = merge_datasets(desired_data, ds_cb)
+#    ds_na = mask_region()
+#    df_train = create_bins()
+#    for i in bins:
+#        m = validation_model()
+
