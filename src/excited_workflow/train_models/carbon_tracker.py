@@ -92,9 +92,12 @@ def train_model(df, x_keys, y_key):
     return pycs
 
 
-def validation_model(df_train, bin_no):
+def validation_model(df_train, bin_no, x_keys, y_key):
     """Validate data."""
     df = df_train[df_train["group"] != bin_no]
     model = train_model(df, x_keys, y_key)
 
     return model
+
+if __name__ == "__main__":
+    ...
