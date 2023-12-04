@@ -81,7 +81,7 @@ def create_bins(ds: xr.Dataset, bin_no: int) -> pd.DataFrame:
     bins = bin_no
     splits = np.array_split(df_train, bins)
     for i in range(len(splits)):
-        splits[i]["group"] = i + 1 
+        splits[i]["group"] = i 
 
     df_train = pd.concat(splits)
     return df_train
@@ -119,22 +119,23 @@ def train_model(df: pd.DataFrame, bin_no: int, x_keys: list[str], y_key: str
     Returns:
         Dataset for training and prediction dataset.
     """
-    mask = df["group"].values != bin_no
+    mask = df["group"] != bin_no
     df_train = df[mask]
     df_reduced = create_df(df_train, x_keys, y_key)
-    ds_reduced = xr.Dataset.from_dataframe(df_reduced)
+    
 
     pycs = pycaret.regression.setup(df_reduced, target=y_key)
     model = pycs.compare_models(include=["lightgbm"], n_select=1, round=1)
 
     df_prediction = df[~mask]
     data = create_df(df_prediction, x_keys, y_key)
+    ds_target = xr.Dataset.from_dataframe(data)
     data.drop(y_key, axis=1, inplace=True)
 
     prediction = pycs.predict_model(model, data=data)
     ds_prediction = xr.Dataset.from_dataframe(prediction)
 
-    return ds_reduced, ds_prediction
+    return ds_target, ds_prediction
 
 
 def calculate_rmse(prediction, target):
@@ -155,7 +156,7 @@ def validate_model(ds, bins, x_keys, y_key):
     """Validate the trained model."""
     df_group = create_bins(ds, bins)
 
-    for i in range(1,bins):
+    for i in range(bins):
         target_ds, prediction = train_model(df_group, i, x_keys, y_key)
         rmse = calculate_rmse(prediction["prediction_label"], target_ds[y_key])
         plt.scatter(prediction["prediction_label"], target_ds[y_key])
