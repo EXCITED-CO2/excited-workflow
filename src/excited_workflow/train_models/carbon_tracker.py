@@ -38,7 +38,16 @@ def mask_region(regions: Path,
                 target: Path, 
                 ds_input: xr.Dataset
                 ) -> xr.Dataset:
-    """Limit data to a region and time slice."""
+    """Limit data to a region and time slice.
+    
+    Args:
+        regions: path to regions file.
+        target: path to target dataset.
+        ds_input: input dataset.
+    
+    Returns:
+        Dataset of masked to North America.
+    """
     ds_regions = xr.open_dataset(regions)
     ds_cb = xr.open_dataset(target)
     ds_cb = excited_workflow.utils.convert_timestamps(ds_cb)
@@ -59,20 +68,36 @@ def mask_region(regions: Path,
 
 
 def create_bins(ds: xr.Dataset, bin_no: int) -> pd.DataFrame:
-    """Create dataframe with different groups."""
+    """Create dataframe with different groups.
+    
+    Args:
+        ds: Dataset to split into groups.
+        bin_no: number of groups.
+    
+    Returns:
+        Dataframe with groups column.
+    """
     df_train = ds.to_dataframe().dropna()
     bins = bin_no
     splits = np.array_split(df_train, bins)
     for i in range(len(splits)):
-        splits[i]['group'] = i + 1 
-        
-    df_train = pd.concat(splits)
+        splits[i]["group"] = i + 1 
 
+    df_train = pd.concat(splits)
     return df_train
 
 
 def create_df(df: pd.DataFrame, x_keys: list[str], y_key: str) -> pd.DataFrame:
-    """Create a dataframe for training."""
+    """Create a dataframe for training.
+    
+    Args:
+        df: dataframe which needs to be converted for training.
+        x_keys: list of input variables.
+        y_key: target variable name.
+    
+    Returns:
+        Dataframe for training.
+    """
     df_pycaret = df[x_keys + [y_key]]
     df_reduced = df_pycaret[::10]
 
@@ -81,58 +106,63 @@ def create_df(df: pd.DataFrame, x_keys: list[str], y_key: str) -> pd.DataFrame:
     return df_reduced
 
 
-def train_model(df: pd.DataFrame, x_keys: list[str], y_key: str) -> xr.Dataset:
-    """Train a model on training data and create prediction."""
-    df_reduced = create_df(df, x_keys, y_key)
+def train_model(df: pd.DataFrame, bin_no: int, x_keys: list[str], y_key: str
+                ):
+    """Train a model on training data and create prediction.
+    
+    Args:
+        df: dataframe which needs to be converted for training.
+        bin_no: number of groups.
+        x_keys: list of input variables.
+        y_key: target variable name.
+    
+    Returns:
+        Dataset for training and prediction dataset.
+    """
+    mask = df["group"].values != bin_no
+    df_train = df[mask]
+    df_reduced = create_df(df_train, x_keys, y_key)
     ds_reduced = xr.Dataset.from_dataframe(df_reduced)
 
     pycs = pycaret.regression.setup(df_reduced, target=y_key)
-    best = pycs.compare_models(n_select=5, round=2)
+    model = pycs.compare_models(include=["lightgbm"], n_select=1, round=1)
 
-    data2 = create_df(df, x_keys, y_key)
-    data2.drop(y_key, axis=1, inplace=True)
+    df_prediction = df[~mask]
+    data = create_df(df_prediction, x_keys, y_key)
+    data.drop(y_key, axis=1, inplace=True)
 
-    prediction = pycs.predict_model(best[1], data=data2)
+    prediction = pycs.predict_model(model, data=data)
     ds_prediction = xr.Dataset.from_dataframe(prediction)
 
     return ds_reduced, ds_prediction
 
 
-def create_validation_data(df_train: pd.DataFrame, 
-                     bin_no: int, 
-                     x_keys: list[str], 
-                     y_key: str
-                     ):
-    """Validate data."""
-    df = df_train[df_train["group"] != bin_no]
-    prediction = train_model(df, x_keys, y_key)
-
-    return prediction
-
-
 def calculate_rmse(prediction, target):
-    """Calculate RMSE and scatterplot."""
+    """Calculate RMSE.
+    
+    Args:
+        prediction: column of prediction.
+        target: column of target.
+    
+    Returns:
+        RMSE 
+    """
     rmse = np.sqrt(((prediction - target) ** 2).mean(dim="time", skipna=True))
     return rmse
-
-
-#def scatterplot(ds, y_key, prediction):
     
 
 def validate_model(ds, bins, x_keys, y_key):
     """Validate the trained model."""
     df_group = create_bins(ds, bins)
 
-    for i in range(bins):
-        target_ds, prediction = create_validation_data(df_group, i, x_keys, y_key)
+    for i in range(1,bins):
+        target_ds, prediction = train_model(df_group, i, x_keys, y_key)
         rmse = calculate_rmse(prediction["prediction_label"], target_ds[y_key])
         plt.scatter(prediction["prediction_label"], target_ds[y_key])
-        plt.show()
+        plt.savefig("scatter" + str(i) + ".png")
         plt.close()
-
-        #print(rmse)
     
-    return rmse
+    return rmse, prediction
  
 
 if __name__ == "__main__":
