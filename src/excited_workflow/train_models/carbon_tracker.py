@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pycaret.regression
@@ -83,6 +84,7 @@ def create_df(df: pd.DataFrame, x_keys: list[str], y_key: str) -> pd.DataFrame:
 def train_model(df: pd.DataFrame, x_keys: list[str], y_key: str) -> xr.Dataset:
     """Train a model on training data and create prediction."""
     df_reduced = create_df(df, x_keys, y_key)
+    ds_reduced = xr.Dataset.from_dataframe(df_reduced)
 
     pycs = pycaret.regression.setup(df_reduced, target=y_key)
     best = pycs.compare_models(n_select=5, round=2)
@@ -93,7 +95,7 @@ def train_model(df: pd.DataFrame, x_keys: list[str], y_key: str) -> xr.Dataset:
     prediction = pycs.predict_model(best[1], data=data2)
     ds_prediction = xr.Dataset.from_dataframe(prediction)
 
-    return ds_prediction
+    return ds_reduced, ds_prediction
 
 
 def create_validation_data(df_train: pd.DataFrame, 
@@ -110,25 +112,34 @@ def create_validation_data(df_train: pd.DataFrame,
 
 def calculate_rmse(prediction, target):
     """Calculate RMSE and scatterplot."""
-    rmse = np.sqrt(((prediction - target) ** 2).mean(dim="time"))
+    rmse = np.sqrt(((prediction - target) ** 2).mean(dim="time", skipna=True))
     return rmse
 
 
-def validate_model(ds, bins, x_keys, y_key, target):
+#def scatterplot(ds, y_key, prediction):
+    
+
+def validate_model(ds, bins, x_keys, y_key):
     """Validate the trained model."""
     df_group = create_bins(ds, bins)
 
     for i in range(bins):
-        prediction = create_validation_data(df_group, i, x_keys, y_key)
-        rmse = calculate_rmse(prediction["prediction_label"], target["y_key"])
-        print(rmse)
+        target_ds, prediction = create_validation_data(df_group, i, x_keys, y_key)
+        rmse = calculate_rmse(prediction["prediction_label"], target_ds[y_key])
+        plt.scatter(prediction["prediction_label"], target_ds[y_key])
+        plt.show()
+        plt.close()
+
+        #print(rmse)
+    
+    return rmse
  
 
 if __name__ == "__main__":
     client = Client()
 
-    ds_cb = Path("/data/volume_2/EXCITED_prepped_data/CT2022.flux1x1-monthly.nc")
-    ds_regions = Path("/data/volume_2/EXCITED_prepped_data/regions.nc")
+    ct_path = Path("/data/volume_2/EXCITED_prepped_data/CT2022.flux1x1-monthly.nc")
+    regions_path = Path("/data/volume_2/EXCITED_prepped_data/regions.nc")
 
     desired_data = [
         "biomass",
@@ -143,7 +154,6 @@ if __name__ == "__main__":
                "stl1", "swvl1", "lccs_class"]
     y_key = "bio_flux_opt"
 
-    print("I am attempting to run things")
-    ds_input = merge_datasets(desired_data, ds_cb)
-    ds_na = mask_region(ds_regions, ds_cb, ds_input)
-    validate_model(ds_na, 5, x_keys, y_key, ds_cb)
+    ds_input = merge_datasets(desired_data, ct_path)
+    ds_na = mask_region(regions_path, ct_path, ds_input)
+    validate_model(ds_na, 5, x_keys, y_key)
