@@ -11,8 +11,6 @@ import xarray as xr
 import xarray_regrid  # Importing this will make Dataset.regrid accessible.
 from dask.distributed import Client
 from onnxruntime import InferenceSession
-from pycaret.classification import predict_model
-from skl2onnx import to_onnx
 from skl2onnx.common.data_types import FloatTensorType
 
 import excited_workflow
@@ -21,7 +19,7 @@ from excited_workflow.source_datasets import datasets
 
 def merge_datasets(desired_data: list[str], target: Path) -> xr.Dataset:
     """Merge datasets onto one common grid.
-    
+
     Args:
         desired_data: list of desired datasets
         freq: time frequency that is desired
@@ -32,60 +30,64 @@ def merge_datasets(desired_data: list[str], target: Path) -> xr.Dataset:
     """
     ds_cb = xr.open_dataset(target)
     ds_cb = excited_workflow.utils.convert_timestamps(ds_cb)
-    ds_input = xr.merge([datasets[name].load(freq="monthly", target_grid=ds_cb) 
-                         for name in desired_data])
-    
+    ds_input = xr.merge(
+        [
+            datasets[name].load(freq="monthly", target_grid=ds_cb)
+            for name in desired_data
+        ]
+    )
+
     return ds_input
 
 
-def mask_region(regions: Path,  
-                target: Path, 
-                ds_input: xr.Dataset
-                ) -> xr.Dataset:
+def mask_region(regions: Path, target: Path, ds_input: xr.Dataset) -> xr.Dataset:
     """Limit data to a region and time slice.
-    
+
     Args:
         regions: path to regions file.
         target: path to target dataset.
         ds_input: input dataset.
-    
+
     Returns:
         Dataset of masked to North America.
     """
     ds_regions = xr.open_dataset(regions)
     ds_cb = xr.open_dataset(target)
     ds_cb = excited_workflow.utils.convert_timestamps(ds_cb)
-    ds_merged = xr.merge([
-        ds_cb[["bio_flux_opt"]], 
-        ds_regions["transcom_regions"],
-        ds_input,
-        ])
-    time_region_na = {"time": slice("2000-01", "2019-12"), 
-                      "latitude": slice(15, 60), 
-                      "longitude": slice(-140, -55),
-                      }
+    ds_merged = xr.merge(
+        [
+            ds_cb[["bio_flux_opt"]],
+            ds_regions["transcom_regions"],
+            ds_input,
+        ]
+    )
+    time_region_na = {
+        "time": slice("2000-01", "2019-12"),
+        "latitude": slice(15, 60),
+        "longitude": slice(-140, -55),
+    }
     ds_na = ds_merged.sel(time_region_na)
     ds_na = ds_na.compute()
-    ds_na = ds_na.where(ds_merged["transcom_regions"]==2)
+    ds_na = ds_na.where(ds_merged["transcom_regions"] == 2)
 
     return ds_na
 
 
-def create_bins(ds: xr.Dataset, bin_no: int) -> pd.DataFrame:
+def create_groups(ds: xr.Dataset, number: int) -> pd.DataFrame:
     """Create dataframe with different groups.
-    
+
     Args:
         ds: Dataset to split into groups.
-        bin_no: number of groups.
-    
+        number: number of groups.
+
     Returns:
         Dataframe with groups column.
     """
     df_train = ds.to_dataframe().dropna()
-    bins = bin_no
-    splits = np.array_split(df_train, bins)
+    groups = number
+    splits = np.array_split(df_train, groups)
     for i in range(len(splits)):
-        splits[i]["group"] = i 
+        splits[i]["group"] = i
 
     df_train = pd.concat(splits)
     return df_train
@@ -93,40 +95,38 @@ def create_bins(ds: xr.Dataset, bin_no: int) -> pd.DataFrame:
 
 def create_df(df: pd.DataFrame, x_keys: list[str], y_key: str) -> pd.DataFrame:
     """Create a dataframe for training.
-    
+
     Args:
         df: dataframe which needs to be converted for training.
         x_keys: list of input variables.
         y_key: target variable name.
-    
+
     Returns:
         Dataframe for training.
     """
     df_pycaret = df[x_keys + [y_key]]
     df_reduced = df_pycaret[::10]
 
-    df_reduced[y_key] = df_reduced[y_key]*1e6  # So RMSE etc. are easier to interpret.
+    df_reduced[y_key] = df_reduced[y_key] * 1e6  # So RMSE etc. are easier to interpret.
 
     return df_reduced
 
 
-def train_model(df: pd.DataFrame, bin_no: int, x_keys: list[str], y_key: str
-                ):
+def train_model(df: pd.DataFrame, number: int, x_keys: list[str], y_key: str):
     """Train a model on training data and create prediction.
-    
+
     Args:
         df: dataframe which needs to be converted for training.
-        bin_no: number of groups.
+        number: number of groups.
         x_keys: list of input variables.
         y_key: target variable name.
-    
+
     Returns:
         Dataset for training and prediction dataset.
     """
-    mask = df["group"] != bin_no
+    mask = df["group"] != number
     df_train = df[mask]
     df_reduced = create_df(df_train, x_keys, y_key)
-    
 
     pycs = pycaret.regression.setup(df_reduced, target=y_key)
     model = pycs.compare_models(include=["lightgbm"], n_select=1, round=1)
@@ -144,21 +144,21 @@ def train_model(df: pd.DataFrame, bin_no: int, x_keys: list[str], y_key: str
 
 def calculate_rmse(prediction, target):
     """Calculate RMSE.
-    
+
     Args:
         prediction: column of prediction.
         target: column of target.
-    
+
     Returns:
-        RMSE 
+        RMSE
     """
     rmse = np.sqrt(((prediction - target) ** 2).mean(dim="time", skipna=True))
     return rmse
-    
+
 
 def validate_model(ds, groups, x_keys, y_key, output_dir):
     """Validate the trained model by calculating rmse and scatterplots.
-    
+
     Args:
         ds: dataset for training.
         groups: number of groups.
@@ -166,7 +166,7 @@ def validate_model(ds, groups, x_keys, y_key, output_dir):
         y_key: target variable name.
         output_dir: directory to output rmse and scatterplots.
     """
-    df_group = create_bins(ds, groups)
+    df_group = create_groups(ds, groups)
 
     for group in range(groups):
         target_ds, prediction = train_model(df_group, group, x_keys, y_key)
@@ -175,7 +175,7 @@ def validate_model(ds, groups, x_keys, y_key, output_dir):
         plt.scatter(prediction["prediction_label"], target_ds[y_key])
         plt.savefig(output_dir / f"scatter{group}.png")
         plt.close()
- 
+
 
 def save_model(ds, x_keys, y_key, output_dir):
     """Save model with onnx."""
@@ -185,18 +185,17 @@ def save_model(ds, x_keys, y_key, output_dir):
     pycs = pycaret.regression.setup(df_reduced, target=y_key)
     model = pycs.compare_models(include=["lightgbm"], n_select=1, round=1)
 
-    X_test = pycs.get_config('X_test').to_numpy()
+    x_test = pycs.get_config("X_test").to_numpy()
 
-    lightgbm_onnx = onnxmltools.convert_lightgbm(model, 
-                                                 initial_types=[('X',
-                                                                  FloatTensorType([None, 
-                                                                                   X_test.shape[1]]))])
+    lightgbm_onnx = onnxmltools.convert_lightgbm(
+        model, initial_types=[("X", FloatTensorType([None, x_test.shape[1]]))]
+    )
     # save model
     with open(output_dir / "lightgbm.onnx", "wb") as f:
         f.write(lightgbm_onnx.SerializeToString())
 
     sess = InferenceSession(lightgbm_onnx.SerializeToString())
-    predictions_onnx = sess.run(None, {'X': X_test})[0]
+    predictions_onnx = sess.run(None, {"X": x_test})[0]
 
     return predictions_onnx
 
@@ -214,11 +213,23 @@ if __name__ == "__main__":
         "modis",
         "era5_monthly",
         "era5_land_monthly",
-        "copernicus_landcover"
+        "copernicus_landcover",
     ]
 
-    x_keys = ["d2m", "mslhf", "msshf", "ssr", "str", "t2m", "spei", "NIRv", "skt",
-               "stl1", "swvl1", "lccs_class"]
+    x_keys = [
+        "d2m",
+        "mslhf",
+        "msshf",
+        "ssr",
+        "str",
+        "t2m",
+        "spei",
+        "NIRv",
+        "skt",
+        "stl1",
+        "swvl1",
+        "lccs_class",
+    ]
     y_key = "bio_flux_opt"
 
     ds_input = merge_datasets(desired_data, ct_path)
