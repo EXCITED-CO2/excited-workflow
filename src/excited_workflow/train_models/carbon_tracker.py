@@ -4,12 +4,16 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+import onnxmltools
 import pandas as pd
 import pycaret.regression
 import xarray as xr
 import xarray_regrid  # Importing this will make Dataset.regrid accessible.
 from dask.distributed import Client
+from onnxruntime import InferenceSession
 from pycaret.classification import predict_model
+from skl2onnx import to_onnx
+from skl2onnx.common.data_types import FloatTensorType
 
 import excited_workflow
 from excited_workflow.source_datasets import datasets
@@ -153,7 +157,7 @@ def calculate_rmse(prediction, target):
     
 
 def validate_model(ds, groups, x_keys, y_key, output_dir):
-    """Validate the trained model.
+    """Validate the trained model by calculating rmse and scatterplots.
     
     Args:
         ds: dataset for training.
@@ -161,9 +165,6 @@ def validate_model(ds, groups, x_keys, y_key, output_dir):
         x_keys: list of input variables.
         y_key: target variable name.
         output_dir: directory to output rmse and scatterplots.
-
-    Returns:
-        RMSE and scatterplots for validation groups.
     """
     df_group = create_bins(ds, groups)
 
@@ -174,9 +175,31 @@ def validate_model(ds, groups, x_keys, y_key, output_dir):
         plt.scatter(prediction["prediction_label"], target_ds[y_key])
         plt.savefig(output_dir / f"scatter{group}.png")
         plt.close()
-    
-    return rmse
  
+
+def save_model(ds, x_keys, y_key, output_dir):
+    """Save model with onnx."""
+    df = ds.to_dataframe().dropna()
+    df_reduced = create_df(df, x_keys, y_key)
+
+    pycs = pycaret.regression.setup(df_reduced, target=y_key)
+    model = pycs.compare_models(include=["lightgbm"], n_select=1, round=1)
+
+    X_test = pycs.get_config('X_test').to_numpy()
+
+    lightgbm_onnx = onnxmltools.convert_lightgbm(model, 
+                                                 initial_types=[('X',
+                                                                  FloatTensorType([None, 
+                                                                                   X_test.shape[1]]))])
+    # save model
+    with open(output_dir / "lightgbm.onnx", "wb") as f:
+        f.write(lightgbm_onnx.SerializeToString())
+
+    sess = InferenceSession(lightgbm_onnx.SerializeToString())
+    predictions_onnx = sess.run(None, {'X': X_test})[0]
+
+    return predictions_onnx
+
 
 if __name__ == "__main__":
     client = Client()
@@ -200,4 +223,5 @@ if __name__ == "__main__":
 
     ds_input = merge_datasets(desired_data, ct_path)
     ds_na = mask_region(regions_path, ct_path, ds_input)
-    rmse = validate_model(ds_na, 5, x_keys, y_key, output_dir)
+    validate_model(ds_na, 5, x_keys, y_key, output_dir)
+    onnx_model = save_model(ds_na, x_keys, y_key, output_dir)
