@@ -152,25 +152,27 @@ def calculate_rmse(prediction, target):
     return rmse
     
 
-def validate_model(ds, bins, x_keys, y_key):
+def validate_model(ds, groups, x_keys, y_key, output_dir):
     """Validate the trained model.
     
     Args:
         ds: dataset for training.
-        bins: number of groups.
+        groups: number of groups.
         x_keys: list of input variables.
         y_key: target variable name.
+        output_dir: directory to output rmse and scatterplots.
 
     Returns:
         RMSE and scatterplots for validation groups.
     """
-    df_group = create_bins(ds, bins)
+    df_group = create_bins(ds, groups)
 
-    for i in range(bins):
-        target_ds, prediction = train_model(df_group, i, x_keys, y_key)
+    for group in range(groups):
+        target_ds, prediction = train_model(df_group, group, x_keys, y_key)
         rmse = calculate_rmse(prediction["prediction_label"], target_ds[y_key])
+        rmse.to_netcdf(output_dir / f"rmse{group}.nc")
         plt.scatter(prediction["prediction_label"], target_ds[y_key])
-        plt.savefig("scatter" + str(i) + ".png")
+        plt.savefig(output_dir / f"scatter{group}.png")
         plt.close()
     
     return rmse
@@ -181,6 +183,7 @@ if __name__ == "__main__":
 
     ct_path = Path("/data/volume_2/EXCITED_prepped_data/CT2022.flux1x1-monthly.nc")
     regions_path = Path("/data/volume_2/EXCITED_prepped_data/regions.nc")
+    output_dir = Path("/home/cdonnelly")
 
     desired_data = [
         "biomass",
@@ -197,4 +200,4 @@ if __name__ == "__main__":
 
     ds_input = merge_datasets(desired_data, ct_path)
     ds_na = mask_region(regions_path, ct_path, ds_input)
-    rmse = validate_model(ds_na, 5, x_keys, y_key)
+    rmse = validate_model(ds_na, 5, x_keys, y_key, output_dir)
