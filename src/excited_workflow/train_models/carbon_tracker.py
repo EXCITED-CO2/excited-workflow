@@ -153,7 +153,17 @@ def calculate_rmse(prediction, target):
     
 
 def validate_model(ds, bins, x_keys, y_key):
-    """Validate the trained model."""
+    """Validate the trained model.
+    
+    Args:
+        ds: dataset for training.
+        bins: number of groups.
+        x_keys: list of input variables.
+        y_key: target variable name.
+
+    Returns:
+        RMSE and scatterplots for validation groups.
+    """
     df_group = create_bins(ds, bins)
 
     for i in range(bins):
@@ -163,7 +173,7 @@ def validate_model(ds, bins, x_keys, y_key):
         plt.savefig("scatter" + str(i) + ".png")
         plt.close()
     
-    return rmse, prediction
+    return rmse
  
 
 if __name__ == "__main__":
@@ -187,4 +197,4 @@ if __name__ == "__main__":
 
     ds_input = merge_datasets(desired_data, ct_path)
     ds_na = mask_region(regions_path, ct_path, ds_input)
-    validate_model(ds_na, 5, x_keys, y_key)
+    rmse = validate_model(ds_na, 5, x_keys, y_key)
