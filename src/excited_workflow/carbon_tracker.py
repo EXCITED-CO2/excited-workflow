@@ -9,7 +9,7 @@ import pandas as pd
 import pycaret.regression
 import xarray as xr
 from dask.distributed import Client
-from skl2onnx.common.data_types import FloatTensorType
+from skl2onnx.common.data_types import DoubleTensorType
 
 import excited_workflow
 from excited_workflow.source_datasets import datasets
@@ -105,12 +105,12 @@ def create_df(df: pd.DataFrame, x_keys: list[str], y_key: str) -> pd.DataFrame:
     df_pycaret = df[x_keys + [y_key]]
     df_reduced = df_pycaret[::10]
 
-    df_reduced[y_key] = df_reduced[y_key] * 1e6  # So RMSE etc. are easier to interpret.
-
     return df_reduced
 
 
-def train_model(df: pd.DataFrame, number: int, x_keys: list[str], y_key: str):
+def train_model(
+    df: pd.DataFrame, number: int, x_keys: list[str], y_key: str
+) -> tuple[xr.Dataset, xr.Dataset]:
     """Train a model on training data and create prediction.
 
     Args:
@@ -126,8 +126,10 @@ def train_model(df: pd.DataFrame, number: int, x_keys: list[str], y_key: str):
     df_train = df[mask]
     df_reduced = create_df(df_train, x_keys, y_key)
 
-    pycs = pycaret.regression.setup(df_reduced, target=y_key)
-    model = pycs.compare_models(include=["lightgbm"], n_select=1, round=1)
+    pycs = pycaret.regression.setup(df_reduced, target=y_key, verbose=False)
+    model = pycs.compare_models(
+        include=["lightgbm"], n_select=1, round=1, cross_validation=False
+    )
 
     df_prediction = df[~mask]
     data = create_df(df_prediction, x_keys, y_key)
@@ -204,13 +206,13 @@ def save_model(ds: xr.Dataset, x_keys: list[str], y_key: str, output_dir: Path) 
     df = ds.to_dataframe().dropna()
     df_reduced = create_df(df, x_keys, y_key)
 
-    pycs = pycaret.regression.setup(df_reduced, target=y_key)
+    pycs = pycaret.regression.setup(df_reduced, target=y_key, verbose=False)
     model = pycs.compare_models(include=["lightgbm"], n_select=1, round=1)
 
     x_test = pycs.get_config("X_test").to_numpy()
 
     lightgbm_onnx = onnxmltools.convert_lightgbm(
-        model, initial_types=[("X", FloatTensorType([None, x_test.shape[1]]))]
+        model, initial_types=[("X", DoubleTensorType([None, x_test.shape[1]]))]
     )
     # save model
     with open(output_dir / "lightgbm.onnx", "wb") as f:
