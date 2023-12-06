@@ -1,5 +1,6 @@
 """Train carbon tracker datasets."""
 
+import datetime
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -142,7 +143,7 @@ def train_model(
     return ds_target, ds_prediction
 
 
-def calculate_rmse(prediction: xr.DataArray, target: xr.DataArray) -> xr.DataArray:
+def calculate_rmse(prediction: xr.DataArray, target: xr.DataArray) -> np.ndarray:
     """Calculate RMSE.
 
     Args:
@@ -156,7 +157,7 @@ def calculate_rmse(prediction: xr.DataArray, target: xr.DataArray) -> xr.DataArr
     return rmse
 
 
-def create_scatterplot(prediction: xr.DataArray, target: xr.DataArray):
+def create_scatterplot(prediction: xr.DataArray, target: xr.DataArray) -> None:
     """Create scatterplot of prediction vs. target.
 
     Args:
@@ -172,7 +173,7 @@ def create_scatterplot(prediction: xr.DataArray, target: xr.DataArray):
 
 
 def validate_model(
-    ds: xr.Dataset, groups: int, x_keys: list[str], y_key: str, output_dir: Path
+    ds: xr.Dataset, groups: int, x_keys: list[str], y_key: str, output_path: Path
 ) -> None:
     """Validate the trained model by calculating rmse and scatterplots.
 
@@ -181,8 +182,12 @@ def validate_model(
         groups: number of groups.
         x_keys: list of input variables.
         y_key: target variable name.
-        output_dir: directory to output rmse and scatterplots.
+        output_path: directory to output rmse and scatterplots.
     """
+    time = datetime.datetime.now().strftime('%Y-%m-%d_%H')
+    output_dir = output_path / f"carbon_tracker-{time}"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
     df_group = create_groups(ds, groups)
 
     for group in range(groups):
@@ -194,15 +199,17 @@ def validate_model(
         plt.close()
 
 
-def save_model(ds: xr.Dataset, x_keys: list[str], y_key: str, output_dir: Path) -> None:
+def save_model(ds: xr.Dataset, x_keys: list[str], y_key: str, output_path: Path) -> None:
     """Create lightgbm model for whole dataset and save with ONNX.
 
     Args:
         ds: dataset used for model creation.
         x_keys: list of input variables.
         y_key: target variable name.
-        output_dir: path to output directory.
+        output_path: path to output directory.
     """
+    time = datetime.datetime.now().strftime('%Y-%m-%d_%H')
+    output_dir = output_path / f"carbon_tracker-{time}"
     df = ds.to_dataframe().dropna()
     df_reduced = create_df(df, x_keys, y_key)
 
