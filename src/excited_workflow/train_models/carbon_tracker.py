@@ -10,7 +10,6 @@ import pycaret.regression
 import xarray as xr
 import xarray_regrid  # Importing this will make Dataset.regrid accessible.
 from dask.distributed import Client
-from onnxruntime import InferenceSession
 from skl2onnx.common.data_types import FloatTensorType
 
 import excited_workflow
@@ -193,11 +192,6 @@ def save_model(ds, x_keys, y_key, output_dir):
     # save model
     with open(output_dir / "lightgbm.onnx", "wb") as f:
         f.write(lightgbm_onnx.SerializeToString())
-
-    sess = InferenceSession(lightgbm_onnx.SerializeToString())
-    predictions_onnx = sess.run(None, {"X": x_test})[0]
-
-    return predictions_onnx
 
 
 if __name__ == "__main__":
