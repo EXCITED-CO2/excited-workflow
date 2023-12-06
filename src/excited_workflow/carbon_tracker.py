@@ -8,7 +8,6 @@ import onnxmltools
 import pandas as pd
 import pycaret.regression
 import xarray as xr
-import xarray_regrid  # Importing this will make Dataset.regrid accessible.
 from dask.distributed import Client
 from skl2onnx.common.data_types import FloatTensorType
 
@@ -141,7 +140,7 @@ def train_model(df: pd.DataFrame, number: int, x_keys: list[str], y_key: str):
     return ds_target, ds_prediction
 
 
-def calculate_rmse(prediction, target):
+def calculate_rmse(prediction: xr.DataArray, target: xr.DataArray) -> xr.DataArray:
     """Calculate RMSE.
 
     Args:
@@ -155,7 +154,24 @@ def calculate_rmse(prediction, target):
     return rmse
 
 
-def validate_model(ds, groups, x_keys, y_key, output_dir):
+def create_scatterplot(prediction: xr.DataArray, target: xr.DataArray):
+    """Create scatterplot of prediction vs. target.
+
+    Args:
+        prediction: dataframe column of prediction.
+        target: dataframe column of target variable.
+
+    Returns:
+        Scatterplot of prediction vs. target.
+    """
+    plt.scatter(prediction, target)
+    plt.xlabel("Prediction")
+    plt.ylabel("Target")
+
+
+def validate_model(
+    ds: xr.Dataset, groups: int, x_keys: list[str], y_key: str, output_dir: Path
+) -> None:
     """Validate the trained model by calculating rmse and scatterplots.
 
     Args:
@@ -171,13 +187,20 @@ def validate_model(ds, groups, x_keys, y_key, output_dir):
         target_ds, prediction = train_model(df_group, group, x_keys, y_key)
         rmse = calculate_rmse(prediction["prediction_label"], target_ds[y_key])
         rmse.to_netcdf(output_dir / f"rmse{group}.nc")
-        plt.scatter(prediction["prediction_label"], target_ds[y_key])
+        create_scatterplot(prediction["prediction_label"], target_ds[y_key])
         plt.savefig(output_dir / f"scatter{group}.png")
         plt.close()
 
 
-def save_model(ds, x_keys, y_key, output_dir):
-    """Save model with onnx."""
+def save_model(ds: xr.Dataset, x_keys: list[str], y_key: str, output_dir: Path) -> None:
+    """Create lightgbm model for whole dataset and save with ONNX.
+
+    Args:
+        ds: dataset used for model creation.
+        x_keys: list of input variables.
+        y_key: target variable name.
+        output_dir: path to output directory.
+    """
     df = ds.to_dataframe().dropna()
     df_reduced = create_df(df, x_keys, y_key)
 
@@ -229,4 +252,4 @@ if __name__ == "__main__":
     ds_input = merge_datasets(desired_data, ct_path)
     ds_na = mask_region(regions_path, ct_path, ds_input)
     validate_model(ds_na, 5, x_keys, y_key, output_dir)
-    onnx_model = save_model(ds_na, x_keys, y_key, output_dir)
+    save_model(ds_na, x_keys, y_key, output_dir)
