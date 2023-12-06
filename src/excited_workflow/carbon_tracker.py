@@ -184,7 +184,7 @@ def validate_model(
         y_key: target variable name.
         output_path: directory to output rmse and scatterplots.
     """
-    time = datetime.datetime.now().strftime('%Y-%m-%d_%H')
+    time = datetime.datetime.now().strftime("%Y-%m-%d_%H")
     output_dir = output_path / f"carbon_tracker-{time}"
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -199,7 +199,9 @@ def validate_model(
         plt.close()
 
 
-def save_model(ds: xr.Dataset, x_keys: list[str], y_key: str, output_path: Path) -> None:
+def save_model(
+    ds: xr.Dataset, x_keys: list[str], y_key: str, output_path: Path
+) -> None:
     """Create lightgbm model for whole dataset and save with ONNX.
 
     Args:
@@ -208,7 +210,7 @@ def save_model(ds: xr.Dataset, x_keys: list[str], y_key: str, output_path: Path)
         y_key: target variable name.
         output_path: path to output directory.
     """
-    time = datetime.datetime.now().strftime('%Y-%m-%d_%H')
+    time = datetime.datetime.now().strftime("%Y-%m-%d_%H")
     output_dir = output_path / f"carbon_tracker-{time}"
     df = ds.to_dataframe().dropna()
     df_reduced = create_df(df, x_keys, y_key)
