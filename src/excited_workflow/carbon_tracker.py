@@ -3,14 +3,14 @@
 import datetime
 from pathlib import Path
 
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt  # type: ignore
 import numpy as np
-import onnxmltools
+import onnxmltools  # type: ignore
 import pandas as pd
-import pycaret.regression
+import pycaret.regression  # type: ignore
 import xarray as xr
 from dask.distributed import Client
-from skl2onnx.common.data_types import DoubleTensorType
+from skl2onnx.common.data_types import DoubleTensorType  # type: ignore
 
 import excited_workflow
 from excited_workflow.source_datasets import datasets
@@ -21,7 +21,6 @@ def merge_datasets(desired_data: list[str], target: Path) -> xr.Dataset:
 
     Args:
         desired_data: list of desired datasets
-        freq: time frequency that is desired
         target: target grid dataset
 
     Returns:
@@ -83,33 +82,14 @@ def create_groups(ds: xr.Dataset, number: int) -> pd.DataFrame:
         Dataframe with groups column.
     """
     df_train = ds.to_dataframe().dropna()
-    groups = number
-    splits = np.array_split(df_train, groups)
+    splits = np.array_split(df_train, number)
     for i in range(len(splits)):
         splits[i]["group"] = i
-
-    df_train = pd.concat(splits)
+    df_train = pd.concat(splits)  # type: ignore
     return df_train
 
 
-def create_df(df: pd.DataFrame, x_keys: list[str], y_key: str) -> pd.DataFrame:
-    """Create a dataframe for training.
-
-    Args:
-        df: dataframe which needs to be converted for training.
-        x_keys: list of input variables.
-        y_key: target variable name.
-
-    Returns:
-        Dataframe for training.
-    """
-    df_pycaret = df[x_keys + [y_key]]
-    df_reduced = df_pycaret[::10]
-
-    return df_reduced
-
-
-def train_model(
+def groupwise_cross_validation(
     df: pd.DataFrame, number: int, x_keys: list[str], y_key: str
 ) -> tuple[xr.Dataset, xr.Dataset]:
     """Train a model on training data and create prediction.
@@ -125,7 +105,7 @@ def train_model(
     """
     mask = df["group"] != number
     df_train = df[mask]
-    df_reduced = create_df(df_train, x_keys, y_key)
+    df_reduced = df_train[x_keys + [y_key]]
 
     pycs = pycaret.regression.setup(df_reduced, target=y_key, verbose=False)
     model = pycs.compare_models(
@@ -133,7 +113,7 @@ def train_model(
     )
 
     df_prediction = df[~mask]
-    data = create_df(df_prediction, x_keys, y_key)
+    data = df_prediction[x_keys + [y_key]]
     ds_target = xr.Dataset.from_dataframe(data)
     data.drop(y_key, axis=1, inplace=True)
 
@@ -143,7 +123,7 @@ def train_model(
     return ds_target, ds_prediction
 
 
-def calculate_rmse(prediction: xr.DataArray, target: xr.DataArray) -> np.ndarray:
+def calculate_rmse(prediction: xr.DataArray, target: xr.DataArray) -> xr.DataArray:
     """Calculate RMSE.
 
     Args:
@@ -154,7 +134,8 @@ def calculate_rmse(prediction: xr.DataArray, target: xr.DataArray) -> np.ndarray
         RMSE
     """
     rmse = np.sqrt(((prediction - target) ** 2).mean(dim="time", skipna=True))
-    return rmse
+    rmse_da = xr.DataArray(rmse)
+    return rmse_da
 
 
 def create_scatterplot(prediction: xr.DataArray, target: xr.DataArray) -> None:
@@ -191,7 +172,9 @@ def validate_model(
     df_group = create_groups(ds, groups)
 
     for group in range(groups):
-        target_ds, prediction = train_model(df_group, group, x_keys, y_key)
+        target_ds, prediction = groupwise_cross_validation(
+            df_group, group, x_keys, y_key
+        )
         rmse = calculate_rmse(prediction["prediction_label"], target_ds[y_key])
         rmse.to_netcdf(output_dir / f"rmse{group}.nc")
         create_scatterplot(prediction["prediction_label"], target_ds[y_key])
@@ -213,7 +196,7 @@ def save_model(
     time = datetime.datetime.now().strftime("%Y-%m-%d_%H")
     output_dir = output_path / f"carbon_tracker-{time}"
     df = ds.to_dataframe().dropna()
-    df_reduced = create_df(df, x_keys, y_key)
+    df_reduced = df[x_keys + [y_key]]
 
     pycs = pycaret.regression.setup(df_reduced, target=y_key, verbose=False)
     model = pycs.compare_models(include=["lightgbm"], n_select=1, round=1)
