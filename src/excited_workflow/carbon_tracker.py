@@ -88,6 +88,17 @@ def create_groups(ds: xr.Dataset, number: int) -> pd.DataFrame:
     return df_train
 
 
+def train_model(df, x_keys, y_key):
+    """Train model."""
+    df_reduced = df[x_keys + [y_key]]
+
+    pycs = pycaret.regression.setup(df_reduced, target=y_key, verbose=False)
+    model = pycs.compare_models(
+        include=["lightgbm"], n_select=1, round=7)
+
+    return pycs, model
+
+
 def groupwise_cross_validation(
     df: pd.DataFrame, number: int, x_keys: list[str], y_key: str
 ) -> tuple[xr.Dataset, xr.Dataset]:
@@ -104,12 +115,7 @@ def groupwise_cross_validation(
     """
     mask = df["group"] != number
     df_train = df[mask]
-    df_reduced = df_train[x_keys + [y_key]]
-
-    pycs = pycaret.regression.setup(df_reduced, target=y_key, verbose=False)
-    model = pycs.compare_models(
-        include=["lightgbm"], n_select=1, round=1, cross_validation=False
-    )
+    pycs, model = train_model(df_train, x_keys, y_key)
 
     df_prediction = df[~mask]
     data = df_prediction[x_keys + [y_key]]
@@ -139,11 +145,11 @@ def calculate_rmse(prediction: xr.DataArray, target: xr.DataArray) -> xr.DataArr
 
 def create_rmseplot(rmse: xr.DataArray) -> None:
     """Create map plot for rmse.
-    
+
     Args:
         rmse: rmse dataarray
     """
-    plt.figure(figsize=(5,3))
+    plt.figure(figsize=(5, 3))
     rmse.plot()
     plt.tight_layout()
 
@@ -155,8 +161,8 @@ def create_scatterplot(prediction: xr.DataArray, target: xr.DataArray) -> None:
         prediction: dataframe column of prediction.
         target: dataframe column of target variable.
     """
-    plt.figure(figsize=(5,5))
-    plt.scatter(prediction, target, s=50)
+    plt.figure(figsize=(5, 5))
+    plt.scatter(prediction, target, s=25)
     plt.xlabel("Prediction")
     plt.ylabel("Target")
     plt.tight_layout()
@@ -208,11 +214,8 @@ def save_model(
     time = datetime.datetime.now().strftime("%Y-%m-%d_%H")
     output_dir = output_path / f"carbon_tracker-{time}"
     df = ds.to_dataframe().dropna()
-    df_reduced = df[x_keys + [y_key]]
 
-    pycs = pycaret.regression.setup(df_reduced, target=y_key, verbose=False)
-    model = pycs.compare_models(include=["lightgbm"], n_select=1, round=7)
-
+    pycs, model = train_model(df, x_keys, y_key)
     x_test = pycs.get_config("X_test").to_numpy()
 
     lightgbm_onnx = onnxmltools.convert_lightgbm(
