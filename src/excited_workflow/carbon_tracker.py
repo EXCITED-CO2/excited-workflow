@@ -38,16 +38,19 @@ def merge_datasets(desired_data: list[str], target: Path) -> xr.Dataset:
     return ds_input
 
 
-def mask_region(regions: Path, target: Path, ds_input: xr.Dataset) -> xr.Dataset:
+def mask_region(
+    regions: Path, target: Path, mask: str, ds_input: xr.Dataset
+) -> xr.Dataset:
     """Limit data to a region and time slice.
 
     Args:
         regions: path to regions file.
         target: path to target dataset.
+        mask: name of region to mask to.
         ds_input: input dataset.
 
     Returns:
-        Dataset of masked to North America.
+        Masked dataset.
     """
     ds_regions = xr.open_dataset(regions)
     ds_cb = xr.open_dataset(target)
@@ -55,20 +58,16 @@ def mask_region(regions: Path, target: Path, ds_input: xr.Dataset) -> xr.Dataset
     ds_merged = xr.merge(
         [
             ds_cb[["bio_flux_opt"]],
-            ds_regions["transcom_regions"],
+            ds_regions[mask],
             ds_input,
         ]
     )
-    time_region_na = {
-        "time": slice("2000-01", "2019-12"),
-        "latitude": slice(15, 60),
-        "longitude": slice(-140, -55),
-    }
-    ds_na = ds_merged.sel(time_region_na)
-    ds_na = ds_na.compute()
-    ds_na = ds_na.where(ds_merged["transcom_regions"] == 2)
 
-    return ds_na
+    ds_sel = ds_merged.sel({"time": slice("2000-01", "2019-12")})
+    ds_sel = ds_sel.compute()
+    ds_sel = ds_sel.where(ds_merged[mask] == 2)
+
+    return ds_sel
 
 
 def create_groups(ds: xr.Dataset, number: int) -> pd.DataFrame:
@@ -138,19 +137,29 @@ def calculate_rmse(prediction: xr.DataArray, target: xr.DataArray) -> xr.DataArr
     return rmse_da
 
 
+def create_rmseplot(rmse: xr.DataArray) -> None:
+    """Create map plot for rmse.
+    
+    Args:
+        rmse: rmse dataarray
+    """
+    plt.figure(figsize=(5,3))
+    rmse.plot()
+    plt.tight_layout()
+
+
 def create_scatterplot(prediction: xr.DataArray, target: xr.DataArray) -> None:
     """Create scatterplot of prediction vs. target.
 
     Args:
         prediction: dataframe column of prediction.
         target: dataframe column of target variable.
-
-    Returns:
-        Scatterplot of prediction vs. target.
     """
-    plt.scatter(prediction, target)
+    plt.figure(figsize=(5,5))
+    plt.scatter(prediction, target, s=50)
     plt.xlabel("Prediction")
     plt.ylabel("Target")
+    plt.tight_layout()
 
 
 def validate_model(
@@ -177,6 +186,9 @@ def validate_model(
         )
         rmse = calculate_rmse(prediction["prediction_label"], target_ds[y_key])
         rmse.to_netcdf(output_dir / f"rmse{group}.nc")
+        create_rmseplot(rmse)
+        plt.savefig(output_dir / f"rmseplot{group}.png")
+        plt.close()
         create_scatterplot(prediction["prediction_label"], target_ds[y_key])
         plt.savefig(output_dir / f"scatter{group}.png")
         plt.close()
@@ -199,7 +211,7 @@ def save_model(
     df_reduced = df[x_keys + [y_key]]
 
     pycs = pycaret.regression.setup(df_reduced, target=y_key, verbose=False)
-    model = pycs.compare_models(include=["lightgbm"], n_select=1, round=1)
+    model = pycs.compare_models(include=["lightgbm"], n_select=1, round=7)
 
     x_test = pycs.get_config("X_test").to_numpy()
 
