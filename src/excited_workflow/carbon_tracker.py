@@ -2,15 +2,16 @@
 
 import datetime
 from pathlib import Path
+from typing import Any
 
-import matplotlib.pyplot as plt  # type: ignore
+import matplotlib.pyplot as plt
 import numpy as np
-import onnxmltools  # type: ignore
+import onnxmltools
 import pandas as pd
-import pycaret.regression  # type: ignore
+import pycaret.regression
 import xarray as xr
 from dask.distributed import Client
-from skl2onnx.common.data_types import DoubleTensorType  # type: ignore
+from skl2onnx.common.data_types import DoubleTensorType
 
 import excited_workflow
 from excited_workflow.source_datasets import datasets
@@ -88,13 +89,12 @@ def create_groups(ds: xr.Dataset, number: int) -> pd.DataFrame:
     return df_train
 
 
-def train_model(df, x_keys, y_key):
+def train_model(df: pd.DataFrame, x_keys: list[str], y_key: str) -> tuple[Any, Any]:
     """Train model."""
     df_reduced = df[x_keys + [y_key]]
 
     pycs = pycaret.regression.setup(df_reduced, target=y_key, verbose=False)
-    model = pycs.compare_models(
-        include=["lightgbm"], n_select=1, round=7)
+    model = pycs.compare_models(include=["lightgbm"], n_select=1, round=7)
 
     return pycs, model
 
@@ -186,6 +186,10 @@ def validate_model(
 
     df_group = create_groups(ds, groups)
 
+    model_vars = [ds[var].attrs["long_name"] for var in x_keys]
+
+    text = "##Carbon tracker model \n" + f"Model variables: \n {model_vars} \n"
+
     for group in range(groups):
         target_ds, prediction = groupwise_cross_validation(
             df_group, group, x_keys, y_key
@@ -198,6 +202,15 @@ def validate_model(
         create_scatterplot(prediction["prediction_label"], target_ds[y_key])
         plt.savefig(output_dir / f"scatter{group}.png")
         plt.close()
+        text = (
+            text
+            + f"**Validation plots for group {group}"
+            + f"**RMSE map** \n ![image]({output_dir}/rmseplot{group}.png) \n"
+            + f"**Scatter plot** \n ![image]({output_dir}/scatter{group}.png) \n"
+        )
+
+    with open(output_dir / "model_description.md", "w") as file:
+        file.write(text)
 
 
 def save_model(
@@ -221,9 +234,12 @@ def save_model(
     lightgbm_onnx = onnxmltools.convert_lightgbm(
         model, initial_types=[("X", DoubleTensorType([None, x_test.shape[1]]))]
     )
-    # save model
+
     with open(output_dir / "lightgbm.onnx", "wb") as f:
         f.write(lightgbm_onnx.SerializeToString())
+
+    # with open(output_dir / "model_description.md", "a") as file:
+    #    file.write(text)
 
 
 if __name__ == "__main__":
@@ -259,6 +275,6 @@ if __name__ == "__main__":
     y_key = "bio_flux_opt"
 
     ds_input = merge_datasets(desired_data, ct_path)
-    ds_na = mask_region(regions_path, ct_path, ds_input)
+    ds_na = mask_region(regions_path, ct_path, "transcom_regions", ds_input)
     validate_model(ds_na, 5, x_keys, y_key, output_dir)
     save_model(ds_na, x_keys, y_key, output_dir)
