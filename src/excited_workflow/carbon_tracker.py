@@ -85,7 +85,7 @@ def create_groups(ds: xr.Dataset, number: int) -> pd.DataFrame:
     splits = np.array_split(df_train, number)
     for i in range(len(splits)):
         splits[i]["group"] = i
-    df_train = pd.concat(splits)  # type: ignore
+    df_train = pd.concat(splits)
     return df_train
 
 
@@ -186,9 +186,14 @@ def validate_model(
 
     df_group = create_groups(ds, groups)
 
-    model_vars = [ds[var].attrs["long_name"] for var in x_keys]
+    model_vars = [f"{var}: {ds[var].attrs['long_name']}" 
+                  if "long_name" in ds[var].attrs 
+                  else var for var in x_keys]
 
-    text = "##Carbon tracker model \n" + f"Model variables: \n {model_vars} \n"
+    text = "## Carbon tracker model \n \n ### Model variables: \n"
+
+    for item in model_vars:
+        text = text + f"- {item} \n"
 
     for group in range(groups):
         target_ds, prediction = groupwise_cross_validation(
@@ -204,7 +209,7 @@ def validate_model(
         plt.close()
         text = (
             text
-            + f"**Validation plots for group {group}"
+            + f"\n ### Validation plots for group {group} \n"
             + f"**RMSE map** \n ![image]({output_dir}/rmseplot{group}.png) \n"
             + f"**Scatter plot** \n ![image]({output_dir}/scatter{group}.png) \n"
         )
