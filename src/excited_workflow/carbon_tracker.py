@@ -18,8 +18,11 @@ from excited_workflow.source_datasets import datasets
 
 
 def mask_region(
-    regions: Path, target: Path, ds_input: xr.Dataset, mask: int,
-) -> xr.Dataset:
+    regions: Path,
+    target: Path,
+    ds_input: xr.Dataset,
+    mask: int,
+) -> tuple[xr.Dataset, pd.DataFrame]:
     """Limit data to a region and time slice.
 
     Args:
@@ -29,7 +32,7 @@ def mask_region(
         ds_input: input dataset.
 
     Returns:
-        Masked dataset.
+        Masked dataset and dataframe.
     """
     ds_regions = xr.open_dataset(regions)
     ds_cb = xr.open_dataset(target)
@@ -45,22 +48,22 @@ def mask_region(
     ds_sel = ds_merged.sel({"time": slice("2000-01", "2019-12")})
     ds_sel = ds_sel.compute()
     ds_sel = ds_sel.where(ds_merged["transcom_regions"] == mask)
-    df = ds_sel.to_dataframe().dropna()
+    df_sel = ds_sel.to_dataframe().dropna()
 
-    return df
+    return ds_sel, df_sel
 
 
-def create_groups(df: pd.DataFrame, number: int) -> pd.DataFrame:
+def create_groups(ds: xr.Dataset, number: int) -> pd.DataFrame:
     """Create dataframe with different groups.
 
     Args:
-        df: Dataframe to split into groups.
+        ds: Dataset to split into groups.
         number: number of groups.
 
     Returns:
         Dataframe with groups column.
     """
-    #df_train = ds.to_dataframe().dropna()
+    df = ds.to_dataframe().dropna()
     splits = np.array_split(df, number)
     for i in range(len(splits)):
         splits[i]["group"] = i
@@ -159,58 +162,64 @@ def create_scatterplot(prediction: xr.DataArray, target: xr.DataArray) -> None:
 
 
 def validate_model(
-    df: pd.DataFrame, groups: int, x_keys: list[str], y_key: str, output_dir: Path
+    ds: xr.Dataset, groups: int, x_keys: list[str], y_key: str, output_dir: Path
 ) -> None:
     """Validate the trained model by calculating rmse and scatterplots.
 
     Args:
-        df: dataframe for training.
+        ds: dataset for training.
         groups: number of groups.
         x_keys: list of input variables.
         y_key: target variable name.
         output_dir: directory to output rmse and scatterplots.
     """
-    df_group = create_groups(df, groups)
+    df_group = create_groups(ds, groups)
 
-    model_vars = [
-        f"**{var}**: {df[var].attrs['long_name']}" if "long_name" in df[var].attrs else var
+    long_names = [
+        ds[var].attrs["long_name"] if "long_name" in ds[var].attrs else "undefined"
         for var in x_keys
+    ]
+    units = [
+        ds[var].attrs["units"] if "units" in ds[var].attrs else "?" for var in x_keys
     ]
 
     text = "## Carbon tracker model \n \n### Model variables (in order): \n\n"
 
-    for item in model_vars:
-        text = text + f"- {item} \n"
+    for var, long_name, unit in zip(x_keys, long_names, units, strict=True):
+        text += f"- {var}: {long_name} ({unit})\n"
 
+    text += "\n### Validation plots \n\n"
+    rmses = []
     for group in range(groups):
         target_ds, prediction = groupwise_cross_validation(
             df_group, group, x_keys, y_key
         )
         rmse = calculate_rmse(prediction["prediction_label"], target_ds[y_key])
-        rmse.to_netcdf(output_dir / f"rmse{group}.nc")
-        create_rmseplot(rmse)
-        plt.savefig(output_dir / f"rmseplot{group}.png")
-        plt.close()
+        rmses.append(rmse)
         create_scatterplot(prediction["prediction_label"], target_ds[y_key])
         plt.savefig(output_dir / f"scatter{group}.png")
         plt.close()
-        text = (
-            text
-            + f"\n### Validation plots for group {group} \n"
-            + f"**RMSE map** \n ![image]({output_dir}/rmseplot{group}.png) \n"
-            + f"**Scatter plot** \n ![image]({output_dir}/scatter{group}.png) \n"
+        text += (
+            f"**Scatter plot {group}** \n ![image]({output_dir}/scatter{group}.png) \n"
         )
+
+    for idx, rmse in enumerate(rmses):
+        rmse.to_netcdf(output_dir / f"rmse{idx}.nc")
+        create_rmseplot(rmse)
+        plt.savefig(output_dir / f"rmseplot{idx}.png")
+        plt.close()
+        text += f"**RMSE map {idx}** \n ![image]({output_dir}/rmseplot{idx}.png) \n"
 
     with open(output_dir / "model_description.md", "w") as file:
         file.write(text)
 
 
-def save_model(pycs, model, output_dir: Path) -> None:
+def save_model(pycs: Any, model: Any, output_dir: Path) -> None:
     """Create lightgbm model for whole dataset and save with ONNX.
 
     Args:
-        pycs: 
-        model: 
+        pycs: model variables
+        model: trained model
         output_dir: path to output directory.
     """
     x_test = pycs.get_config("X_test").to_numpy()
@@ -267,7 +276,7 @@ if __name__ == "__main__":
             for name in desired_data
         ]
     )
-    df_na = mask_region(regions_file, cb_file, ds_input, 2)
-    validate_model(df_na, 5, x_keys, y_key, output_dir)
-    pycs, model = train_model(df_na, x_keys, y_key)
+    ds_na, df = mask_region(regions_file, cb_file, ds_input, 2)
+    validate_model(ds_na, 5, x_keys, y_key, output_dir)
+    pycs, model = train_model(df, x_keys, y_key)
     save_model(pycs, model, output_dir)
