@@ -145,7 +145,6 @@ def create_scatterplots(
     y_key: str,
     target_units: str,
     output_dir: Path,
-    text: str,
 ) -> str:
     """Create scatterplots of prediction vs. target.
 
@@ -155,8 +154,8 @@ def create_scatterplots(
         y_key: name of target variable.
         target_units: units for target variable.
         output_dir: Path to output directory
-        text: text for markdown file
     """
+    text = "Scatter plots for groupwise cross validation. \n\n"
     for idx, (target, prediction) in enumerate(zip(targets, predictions, strict=True)):
         plt.figure(figsize=(5, 5))
         plt.scatter(prediction["prediction_label"], target[y_key], s=20)
@@ -177,7 +176,6 @@ def make_full_plot(
     y_key: str,
     target_units: str,
     output_dir: Path,
-    text: str,
 ) -> str:
     """Make scatterplot for all groups.
 
@@ -187,8 +185,8 @@ def make_full_plot(
         y_key: name of target variable.
         target_units: units for target variable.
         output_dir: Path to output directory
-        text: text for markdown file
     """
+    text = "Scatterplot for all groups. \n\n"
     fig = plt.figure(figsize=(6, 6))
     ax = plt.axes()
     for target, prediction in zip(targets, predictions, strict=True):
@@ -204,14 +202,14 @@ def make_full_plot(
     return text
 
 
-def create_rmseplots(rmses: list[xr.DataArray], output_dir: Path, text: str) -> str:
+def create_rmseplots(rmses: list[xr.DataArray], output_dir: Path) -> str:
     """Create map plot for rmse.
 
     Args:
         rmses: list of rmse dataarrays
         output_dir: Path to output directory
-        text: text for markdown file
     """
+    text = "Rmse plots for groupwise cross validation. \n\n"
     for idx, rmse in enumerate(rmses):
         rmse.to_netcdf(output_dir / f"rmse{idx}.nc")
         plt.figure(figsize=(5, 3))
@@ -252,23 +250,29 @@ def create_markdown_file(
         ds[var].attrs["units"] if "units" in ds[var].attrs else "?" for var in x_keys
     ]
 
-    text = "## Carbon tracker model \n \n### Model variables (in order): \n\n"
+    text = """## Carbon tracker model 
+    
+Description of model for carbon tracker workflow.
+
+    ### Model variables (in order): \n\n"""
 
     for var, long_name, unit in zip(x_keys, long_names, units, strict=True):
-        text += f"- {var}: {long_name} ({unit})\n"
+        text += f"- **{var}**: {long_name} (`{unit}`)\n"
 
-    text += "\n\n###Target variable:\n\n"
+    text += "\n\n ###Target variable:\n\n"
     target_name = ds[y_key].attrs["long_name"]
     target_units = ds[y_key].attrs["units"]
     text += f"{y_key}: {target_name} ({target_units})\n"
 
-    text += "\n### Validation plots \n\n"
+    text += """\n### Validation plots
 
-    text = create_scatterplots(
-        predictions, targets, y_key, target_units, output_dir, text
-    )
-    text = make_full_plot(predictions, targets, y_key, target_units, output_dir, text)
-    text = create_rmseplots(rmses, output_dir, text)
+Dataset is split into 5 equal groups for crosswise validation, one group is left out of 
+training iteratively and used for validation. Then rmse is calculated and mapped and 
+scatterplots for each group are created. \n\n"""
+
+    text += create_scatterplots(predictions, targets, y_key, target_units, output_dir)
+    text += make_full_plot(predictions, targets, y_key, target_units, output_dir)
+    text += create_rmseplots(rmses, output_dir)
 
     with open(output_dir / "model_description.md", "w") as file:
         file.write(text)
