@@ -22,14 +22,16 @@ def mask_region(
     target: Path,
     ds_input: xr.Dataset,
     mask: int,
+    y_key: str,
 ) -> tuple[xr.Dataset, pd.DataFrame]:
     """Limit data to a region and time slice.
 
     Args:
         regions: path to regions file.
         target: path to target dataset.
-        mask: name of region to mask to.
         ds_input: input dataset.
+        mask: name of region to mask to.
+        y_key: target variable name.
 
     Returns:
         Masked dataset and dataframe.
@@ -39,7 +41,7 @@ def mask_region(
     ds_cb = excited_workflow.utils.convert_timestamps(ds_cb)
     ds_merged = xr.merge(
         [
-            ds_cb[["bio_flux_opt"]],
+            ds_cb[[y_key]],
             ds_regions["transcom_regions"],
             ds_input,
         ]
@@ -48,6 +50,7 @@ def mask_region(
     ds_sel = ds_merged.sel({"time": slice("2000-01", "2019-12")})
     ds_sel = ds_sel.compute()
     ds_sel = ds_sel.where(ds_merged["transcom_regions"] == mask)
+    ds_sel[y_key].attrs["long_name"] = "terrestrial biosphere CO2 flux"
     df_sel = ds_sel.to_dataframe().dropna()
 
     return ds_sel, df_sel
@@ -136,29 +139,139 @@ def calculate_rmse(prediction: xr.DataArray, target: xr.DataArray) -> xr.DataArr
     return rmse_da
 
 
-def create_rmseplot(rmse: xr.DataArray) -> None:
+def create_scatterplots(
+    predictions: list[xr.Dataset],
+    targets: list[xr.Dataset],
+    y_key: str,
+    target_units: str,
+    output_dir: Path,
+    text: str,
+) -> str:
+    """Create scatterplots of prediction vs. target.
+
+    Args:
+        predictions: list of predictions datasets per group.
+        targets: list of target datasets per group.
+        y_key: name of target variable.
+        target_units: units for target variable.
+        output_dir: Path to output directory
+        text: text for markdown file
+    """
+    for idx, (target, prediction) in enumerate(zip(targets, predictions, strict=True)):
+        plt.figure(figsize=(5, 5))
+        plt.scatter(prediction["prediction_label"], target[y_key], s=20)
+        plt.axline((0, 0), slope=1, color="black")
+        plt.xlabel(f"{target[y_key].name} ({target_units})")
+        plt.ylabel(f"{prediction['prediction_label'].name} ({target_units})")
+        plt.tight_layout()
+        plt.savefig(output_dir / f"scatter{idx}.png")
+        plt.close()
+        text += f"**Scatter plot {idx}**\n ![image]({output_dir}/scatter{idx}.png)\n\n"
+
+    return text
+
+
+def make_full_plot(
+    predictions: list[xr.Dataset],
+    targets: list[xr.Dataset],
+    y_key: str,
+    target_units: str,
+    output_dir: Path,
+    text: str,
+) -> str:
+    """Make scatterplot for all groups.
+
+    Args:
+        predictions: list of predictions datasets per group.
+        targets: list of target datasets per group.
+        y_key: name of target variable.
+        target_units: units for target variable.
+        output_dir: Path to output directory
+        text: text for markdown file
+    """
+    fig = plt.figure(figsize=(6, 6))
+    ax = plt.axes()
+    for target, prediction in zip(targets, predictions, strict=True):
+        ax.scatter(target[y_key], prediction["prediction_label"], s=12, alpha=0.5)
+        ax.axline((0, 0), slope=1, color="black")
+    ax.set_xlabel(f"{target[y_key].name} ({target_units})")
+    ax.set_ylabel(f"{prediction['prediction_label'].name} ({target_units})")
+    fig.tight_layout()
+    fig.savefig(output_dir / "all_scatter.png")
+    fig.clf()
+    text += f"**Scatter plot all**\n ![image]({output_dir}/all_scatter.png)\n\n"
+
+    return text
+
+
+def create_rmseplots(rmses: list[xr.DataArray], output_dir: Path, text: str) -> str:
     """Create map plot for rmse.
 
     Args:
-        rmse: rmse dataarray
+        rmses: list of rmse dataarrays
+        output_dir: Path to output directory
+        text: text for markdown file
     """
-    plt.figure(figsize=(5, 3))
-    rmse.plot()
-    plt.tight_layout()
+    for idx, rmse in enumerate(rmses):
+        rmse.to_netcdf(output_dir / f"rmse{idx}.nc")
+        plt.figure(figsize=(5, 3))
+        rmse.plot()
+        plt.tight_layout()
+        plt.savefig(output_dir / f"rmseplot{idx}.png")
+        plt.close()
+        text += f"**RMSE map {idx}**\n ![image]({output_dir}/rmseplot{idx}.png)\n\n"
+
+    return text
 
 
-def create_scatterplot(prediction: xr.DataArray, target: xr.DataArray) -> None:
-    """Create scatterplot of prediction vs. target.
+def create_markdown_file(
+    ds: xr.Dataset,
+    predictions: list[xr.Dataset],
+    targets: list[xr.Dataset],
+    rmses: list[xr.DataArray],
+    x_keys: list[str],
+    y_key: str,
+    output_dir: Path,
+) -> None:
+    """Create a markdown file with a model description and validation plots.
 
     Args:
-        prediction: dataframe column of prediction.
-        target: dataframe column of target variable.
+        ds: dataset for training.
+        predictions: list of predictions datasets per group.
+        targets: list of target datasets per group.
+        rmses: list of rmse dataarrays.
+        x_keys: list of input variables.
+        y_key: target variable name.
+        output_dir: directory to output rmse and scatterplots.
     """
-    plt.figure(figsize=(5, 5))
-    plt.scatter(prediction, target, s=25)
-    plt.xlabel("Prediction")
-    plt.ylabel("Target")
-    plt.tight_layout()
+    long_names = [
+        ds[var].attrs["long_name"] if "long_name" in ds[var].attrs else "undefined"
+        for var in x_keys
+    ]
+    units = [
+        ds[var].attrs["units"] if "units" in ds[var].attrs else "?" for var in x_keys
+    ]
+
+    text = "## Carbon tracker model \n \n### Model variables (in order): \n\n"
+
+    for var, long_name, unit in zip(x_keys, long_names, units, strict=True):
+        text += f"- {var}: {long_name} ({unit})\n"
+
+    text += "\n\n###Target variable:\n\n"
+    target_name = ds[y_key].attrs["long_name"]
+    target_units = ds[y_key].attrs["units"]
+    text += f"{y_key}: {target_name} ({target_units})\n"
+
+    text += "\n### Validation plots \n\n"
+
+    text = create_scatterplots(
+        predictions, targets, y_key, target_units, output_dir, text
+    )
+    text = make_full_plot(predictions, targets, y_key, target_units, output_dir, text)
+    text = create_rmseplots(rmses, output_dir, text)
+
+    with open(output_dir / "model_description.md", "w") as file:
+        file.write(text)
 
 
 def validate_model(
@@ -175,43 +288,19 @@ def validate_model(
     """
     df_group = create_groups(ds, groups)
 
-    long_names = [
-        ds[var].attrs["long_name"] if "long_name" in ds[var].attrs else "undefined"
-        for var in x_keys
-    ]
-    units = [
-        ds[var].attrs["units"] if "units" in ds[var].attrs else "?" for var in x_keys
-    ]
-
-    text = "## Carbon tracker model \n \n### Model variables (in order): \n\n"
-
-    for var, long_name, unit in zip(x_keys, long_names, units, strict=True):
-        text += f"- {var}: {long_name} ({unit})\n"
-
-    text += "\n### Validation plots \n\n"
+    predictions = []
+    targets = []
     rmses = []
     for group in range(groups):
-        target_ds, prediction = groupwise_cross_validation(
+        target_ds, prediction_ds = groupwise_cross_validation(
             df_group, group, x_keys, y_key
         )
-        rmse = calculate_rmse(prediction["prediction_label"], target_ds[y_key])
+        rmse = calculate_rmse(prediction_ds["prediction_label"], target_ds[y_key])
+        predictions.append(prediction_ds)
+        targets.append(target_ds)
         rmses.append(rmse)
-        create_scatterplot(prediction["prediction_label"], target_ds[y_key])
-        plt.savefig(output_dir / f"scatter{group}.png")
-        plt.close()
-        text += (
-            f"**Scatter plot {group}** \n ![image]({output_dir}/scatter{group}.png) \n"
-        )
 
-    for idx, rmse in enumerate(rmses):
-        rmse.to_netcdf(output_dir / f"rmse{idx}.nc")
-        create_rmseplot(rmse)
-        plt.savefig(output_dir / f"rmseplot{idx}.png")
-        plt.close()
-        text += f"**RMSE map {idx}** \n ![image]({output_dir}/rmseplot{idx}.png) \n"
-
-    with open(output_dir / "model_description.md", "w") as file:
-        file.write(text)
+    create_markdown_file(ds, predictions, targets, rmses, x_keys, y_key, output_dir)
 
 
 def save_model(pycs: Any, model: Any, output_dir: Path) -> None:
@@ -276,7 +365,7 @@ if __name__ == "__main__":
             for name in desired_data
         ]
     )
-    ds_na, df = mask_region(regions_file, cb_file, ds_input, 2)
+    ds_na, df = mask_region(regions_file, cb_file, ds_input, 2, y_key)
     validate_model(ds_na, 5, x_keys, y_key, output_dir)
     pycs, model = train_model(df, x_keys, y_key)
     save_model(pycs, model, output_dir)
