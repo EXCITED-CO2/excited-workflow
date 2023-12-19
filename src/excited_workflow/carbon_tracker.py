@@ -155,7 +155,7 @@ def create_scatterplots(
         target_units: units for target variable.
         output_dir: Path to output directory
     """
-    text = "Scatter plots for groupwise cross validation. \n\n"
+    text = "### Scatter plots for groupwise cross validation. \n\n"
     for idx, (target, prediction) in enumerate(zip(targets, predictions, strict=True)):
         plt.figure(figsize=(5, 5))
         plt.scatter(prediction["prediction_label"], target[y_key], s=20)
@@ -186,7 +186,7 @@ def make_full_plot(
         target_units: units for target variable.
         output_dir: Path to output directory
     """
-    text = "Scatterplot for all groups. \n\n"
+    text = "### Scatterplot for all groups. \n\n"
     fig = plt.figure(figsize=(6, 6))
     ax = plt.axes()
     for target, prediction in zip(targets, predictions, strict=True):
@@ -209,7 +209,7 @@ def create_rmseplots(rmses: list[xr.DataArray], output_dir: Path) -> str:
         rmses: list of rmse dataarrays
         output_dir: Path to output directory
     """
-    text = "Rmse plots for groupwise cross validation. \n\n"
+    text = "### RMSE plots for groupwise cross validation. \n\n"
     for idx, rmse in enumerate(rmses):
         rmse.to_netcdf(output_dir / f"rmse{idx}.nc")
         plt.figure(figsize=(5, 3))
@@ -254,15 +254,16 @@ def create_markdown_file(
     
 Description of model for carbon tracker workflow.
 
-    ### Model variables (in order): \n\n"""
+### Model variables (in order):
+"""
 
     for var, long_name, unit in zip(x_keys, long_names, units, strict=True):
         text += f"- **{var}**: {long_name} (`{unit}`)\n"
 
-    text += "\n\n ###Target variable:\n\n"
+    text += "\n### Target variable:\n\n"
     target_name = ds[y_key].attrs["long_name"]
     target_units = ds[y_key].attrs["units"]
-    text += f"{y_key}: {target_name} ({target_units})\n"
+    text += f"- **{y_key}**: {target_name} ({target_units})\n"
 
     text += """\n### Validation plots
 
