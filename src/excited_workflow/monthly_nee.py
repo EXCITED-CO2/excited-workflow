@@ -98,3 +98,5 @@ def create_dataset(dfs: list[pd.DataFrame], times: list[str], data_dir: Path) ->
     comp = dict(zlib=True, complevel=8)
     encoding = {var: comp for var in ds_out.data_vars}
     ds_out.to_netcdf(output_dir / "NEE_monthly.nc", encoding=encoding)
+    
+    return ds_out
