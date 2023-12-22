@@ -45,7 +45,6 @@ def get_predictions(
     ds_merge = xr.merge([dsx, ds_regions["transcom_regions"]])
     allnan = ds_merge.isnull().all(dim=["latitude", "longitude"]).compute()
 
-
     dfs = []
     for idx, _dtime in enumerate(ds_merge["time"]):
         ds_sel = ds_merge.isel(time=[idx])
@@ -58,7 +57,7 @@ def get_predictions(
                 pd.DataFrame(data=prediction, index=df_sel.index, columns=["bio_flux"])
             )
 
-    return dfs#
+    return dfs  #
 
 
 def create_dataset(dfs: list[pd.DataFrame], data_dir: Path, x_keys: list[str]) -> Any:
