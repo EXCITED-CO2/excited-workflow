@@ -51,10 +51,11 @@ def get_predictions(
         if not any([allnan.isel(time=idx)[var] for var in allnan.data_vars]):
             ds_sel = ds_sel.compute()
             ds_na = ds_sel.where(ds_merge["transcom_regions"] == 2)
-            df_sel = ds_na.to_dataframe().dropna()
-            prediction = run_model(model_dir, df_sel, x_keys)
+            ds_land = ds_na.where(ds_na["lccs_class"] != 210)
+            df_land = ds_land.to_dataframe().dropna()
+            prediction = run_model(model_dir, df_land, x_keys)
             dfs.append(
-                pd.DataFrame(data=prediction, index=df_sel.index, columns=["bio_flux"])
+                pd.DataFrame(data=prediction, index=df_land.index, columns=["bio_flux"])
             )
 
     return dfs  #
