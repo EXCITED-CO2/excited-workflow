@@ -45,6 +45,16 @@ def load_modis_data(files: list[Path]) -> xr.Dataset:
         latitude=("latitude", lats), longitude=("longitude", lons)
     )
 
+    # attributes are missing, so we add them manually:
+    dataset["NDVI"].attrs = {
+        "long_name": "normalized difference vegetation index",
+        "units": "-",
+    }
+    dataset["NIRv"].attrs = {
+        "long_name": "near-infrared reflectance of vegetation",
+        "units": "-",
+    }
+
     return dataset
 
 
