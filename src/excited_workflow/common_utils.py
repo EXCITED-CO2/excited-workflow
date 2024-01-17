@@ -41,6 +41,6 @@ def read_model_variables(
         y_key: The target/ouput variable of the model.
         included_datasets: Which additional datasets were included in the training.
     """
-    with (Path(output_directory) / "model_variables.txt").open("r") as f:
+    with (Path(output_directory) / "model_variables.json").open("r") as f:
         model_vars = json.load(f)
     return model_vars["X_keys"], model_vars["y_key"], model_vars["included_datasets"]
