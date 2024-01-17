@@ -55,13 +55,11 @@ dependencies = [
     "flox", # Makes xarray groupby (and resample) faster.
     "bottleneck", # required for some xarray functionality.
     "xarray-regrid",
+    "pycaret",
 ]
 dynamic = ["version"]
 
 [project.optional-dependencies]
-pycaret = [
-  "pycaret",
-]
 dev = [
   "ruff",
   "mypy",
