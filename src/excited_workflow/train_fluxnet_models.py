@@ -1,5 +1,6 @@
 """Workflow to produce the Fluxnet-based ML model(s)."""
 import shutil
+from collections.abc import Callable
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime
@@ -219,6 +220,7 @@ def collect_training_data(
     fluxnet_file: str | Path,
     preprocessing_dir: str | Path,
     additional_datasets: list[str],
+    variable_derivation: Callable[[xr.Dataset], xr.Dataset] | None = None,
 ) -> xr.Dataset:
     """Collect the training data into a single xarray Dataset.
 
@@ -226,6 +228,8 @@ def collect_training_data(
         fluxnet_file: Path to the preprocessed fluxnet netCDF file.
         preprocessing_dir: Directory to store preprocessing data in.
         additional_datasets: Which additional datasets you want to load.
+        variable_derivation: (optional) function which derives additional variables from
+            the combined dataset.
 
     Returns:
         A single dataset with all data merged together.
@@ -246,7 +250,6 @@ def collect_training_data(
     ds_era5_sites = xr.open_mfdataset(
         list(Path(preprocessing_dir).glob("fluxnet-sites_era5*.nc"))
     )
-    ds_era5_sites = calculate_era5_derived_vars(ds_era5_sites)
 
     # Load monthly data: hourly data will lead to memory issues
     input_data = xr.merge(
@@ -258,7 +261,12 @@ def collect_training_data(
 
     additional_data = extract_sites_from_datasets(input_data, ds_fluxnet)
 
-    return xr.merge([ds_fluxnet, ds_era5_sites, additional_data])
+    ds = xr.merge([ds_fluxnet, ds_era5_sites, additional_data])
+
+    if variable_derivation is not None:
+        ds = variable_derivation(ds)
+
+    return ds
 
 
 def run_workflow(
@@ -266,6 +274,7 @@ def run_workflow(
     preprocessing_dir: str | Path,
     additional_datasets: list[str],
     models: Iterable[FluxnetExperiment] | FluxnetExperiment,
+    variable_derivation: Callable[[xr.Dataset], xr.Dataset] | None = None,
     validation_plots: Iterable[str] = ("error", "feature", "residuals", "learning"),
 ) -> None:
     """Run the fluxnet workflow.
@@ -275,12 +284,19 @@ def run_workflow(
         preprocessing_dir: Directory to store preprocessing data in.
         additional_datasets: Which additional datasets you want to load.
         models: The Fluxnet experiment(s) in the format of the FluxnetExperiment object.
+        variable_derivation: (optional) function which derives additional variables from
+            the combined dataset.
         validation_plots: Which pycaret validation plots to add to the markdown file.
     """
     if isinstance(models, FluxnetExperiment):
         models = [models]
 
-    ds = collect_training_data(fluxnet_file, preprocessing_dir, additional_datasets)
+    ds = collect_training_data(
+        fluxnet_file,
+        preprocessing_dir,
+        additional_datasets,
+        variable_derivation,
+    )
 
     df_train = ds.to_dataframe().dropna().reset_index()
 
