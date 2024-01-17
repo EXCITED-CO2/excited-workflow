@@ -15,13 +15,14 @@ from skl2onnx.common.data_types import DoubleTensorType
 from sklearn.model_selection import BaseCrossValidator
 
 from excited_workflow import fluxnet_site_extraction
+from excited_workflow.common_utils import write_model_variables
 from excited_workflow.config import PATHS_CFG
 from excited_workflow.source_datasets import datasets
 
 
 def calculate_era5_derived_vars(era5_dataset: xr.Dataset) -> xr.Dataset:
     """Calculate variables, based on the ERA5 dataset.
-    
+
     Variables calculated:
         ssr_6hr: six hour rolling mean of the incoming shortwave solar radiation.
         day_of_year: The day of year.
@@ -32,70 +33,67 @@ def calculate_era5_derived_vars(era5_dataset: xr.Dataset) -> xr.Dataset:
         mean_dewpoint_depression: Mean dewpoint depression.
     """
     era5_dataset = era5_dataset.copy(deep=True)
-    era5_dataset["ssr_6hr"] = era5_dataset["ssr"].isel(site=0).rolling(
-        time=6, center=True
-    ).mean()
+    era5_dataset["ssr_6hr"] = (
+        era5_dataset["ssr"].isel(site=0).rolling(time=6, center=True).mean()
+    )
 
     era5_dataset["day_of_year"] = era5_dataset["time"].dt.dayofyear
     era5_dataset["hour"] = era5_dataset["time"].dt.hour
 
-    era5_dataset["t2m_1w_rolling"] = era5_dataset["t2m"].rolling(
-        time=7*24, center=True
-    ).mean()
+    era5_dataset["t2m_1w_rolling"] = (
+        era5_dataset["t2m"].rolling(time=7 * 24, center=True).mean()
+    )
     era5_dataset["mean_air_temperature"] = era5_dataset["t2m"].mean(dim="time")
 
-    era5_dataset["mean_dewpoint_depression"] = (
-        era5_dataset["t2m"].mean(dim="time") - era5_dataset["d2m"].mean(dim="time")
-    )
+    era5_dataset["mean_dewpoint_depression"] = era5_dataset["t2m"].mean(
+        dim="time"
+    ) - era5_dataset["d2m"].mean(dim="time")
 
     era5_dataset["dewpoint_depression_1w_rolling"] = (
-        era5_dataset["t2m"].rolling(time=7*24, center=True).mean() - 
-        era5_dataset["d2m"].rolling(time=7*24, center=True).mean()
+        era5_dataset["t2m"].rolling(time=7 * 24, center=True).mean()
+        - era5_dataset["d2m"].rolling(time=7 * 24, center=True).mean()
     )
     return era5_dataset
 
 
-def compute_respiration(ameriflux_data: xr.Dataset) -> xr.Dataset:
-    """Compute respiration from ameriflux GPP and NEE."""
-    ameriflux_data = ameriflux_data.copy(deep=True)
-    ameriflux_data["resp"] = (
-        ameriflux_data["GPP_NT_VUT_REF"] + 
-        ameriflux_data["NEE_VUT_REF"]
-    )
-    ameriflux_data["resp"].attrs = {
+def compute_respiration(fluxnet_data: xr.Dataset) -> xr.Dataset:
+    """Compute respiration from fluxnet GPP and NEE."""
+    fluxnet_data = fluxnet_data.copy(deep=True)
+    fluxnet_data["resp"] = fluxnet_data["GPP_NT_VUT_REF"] + fluxnet_data["NEE_VUT_REF"]
+    fluxnet_data["resp"].attrs = {
         "units": "umolCO2 m-2 s-1",
         "long_name": "ecosystem_respiration",
     }
-    ameriflux_data["GPP_NT_VUT_REF"].attrs = {
+    fluxnet_data["GPP_NT_VUT_REF"].attrs = {
         "units": "umolCO2 m-2 s-1",
         "long_name": "gross_primary_production",
     }
-    ameriflux_data["NEE_VUT_REF"].attrs = {
+    fluxnet_data["NEE_VUT_REF"].attrs = {
         "units": "umolCO2 m-2 s-1",
         "long_name": "net_ecosystem_exchange",
     }
-    return ameriflux_data
+    return fluxnet_data
 
 
 def extract_sites_from_datasets(
-    input_data: xr.Dataset, ameriflux_data: xr.Dataset
+    input_data: xr.Dataset, fluxnet_data: xr.Dataset
 ) -> xr.Dataset:
     """Extract Fluxnet site locations from input dataset."""
-    #Shift to center of month to allow for more accurate interpolation.
+    # Shift to center of month to allow for more accurate interpolation.
     input_data["time"] = input_data["time"].copy(deep=True) + np.timedelta64(14, "D")
 
     additional_data = []
-    for i_site in range(ameriflux_data["site"].size):
-        ds_site = ameriflux_data.isel(site=i_site)
+    for i_site in range(fluxnet_data["site"].size):
+        ds_site = fluxnet_data.isel(site=i_site)
         site_data = input_data.sel(
-                latitude=ds_site["latitude"],
-                longitude=ds_site["longitude"],
-                time=ds_site["time"],
-                method="nearest",
+            latitude=ds_site["latitude"],
+            longitude=ds_site["longitude"],
+            time=ds_site["time"],
+            method="nearest",
         ).drop(["latitude", "longitude"])
 
         # Otherwise the original (monthly) dates are kept:
-        site_data["time"] = ameriflux_data["time"]  
+        site_data["time"] = fluxnet_data["time"]
         additional_data.append(site_data)
 
     additional_site_data = xr.concat(additional_data, dim="site")
@@ -125,9 +123,9 @@ def make_validation_plots(
     pycaret_model: Any,
     output_dir: Path,
     plots: Iterable[str] = ("error", "feature", "residuals", "learning"),
-) -> list[Path]:
+) -> None:
     """Make pycaret model analysis plots."""
-    plots_dir = (output_dir / "plots")
+    plots_dir = output_dir / "plots"
     plots_dir.mkdir(parents=True, exist_ok=True)
 
     for plotname in plots:
@@ -146,7 +144,7 @@ def create_markdown_file(
     """Create a markdown file with a model description and validation plots.
 
     Args:
-        ds: dataset for training.
+        ds: dataset containing all variables for training the model.
         predictions: list of predictions datasets per group.
         targets: list of target datasets per group.
         rmses: list of rmse dataarrays.
@@ -187,7 +185,6 @@ Description of model for fluxnet workflow.
         for plot in plot_files:
             text += f"![]({str(plot.relative_to(output_dir))})\n"
 
-
     with open(output_dir / "model_description.md", "w") as file:
         file.write(text)
 
@@ -195,6 +192,7 @@ Description of model for fluxnet workflow.
 @dataclass
 class FluxnetExperiment:
     """Parameters to train a ML model on Fluxnet data."""
+
     name: str
     X_keys: list[str]
     y_key: str
@@ -203,7 +201,7 @@ class FluxnetExperiment:
     cv_group_key: str
     output_dir: Path
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Set up the model's output directory."""
         self._init_time = datetime.now().strftime("%Y-%m-%d_%H_%M")
         self.model_dir.mkdir(parents=True, exist_ok=True)
@@ -212,45 +210,79 @@ class FluxnetExperiment:
     def model_dir(self) -> Path:
         """Get the model's output directory."""
         return (
-            self.output_dir /
-            f"fluxnet_{self.name}-{self.ml_model_name}-{self._init_time}"
+            self.output_dir
+            / f"fluxnet_{self.name}-{self.ml_model_name}-{self._init_time}"
         )
-    
 
-def run_workflow(
-    ameriflux_file: str | Path,
+
+def collect_training_data(
+    fluxnet_file: str | Path,
     preprocessing_dir: str | Path,
-    desired_additional_datasets: list[str],
-    models: list[FluxnetExperiment],
-) -> None:
-    """Run the fluxnet workflow."""
+    additional_datasets: list[str],
+) -> xr.Dataset:
+    """Collect the training data into a single xarray Dataset.
+
+    Args:
+        fluxnet_file: Path to the preprocessed fluxnet netCDF file.
+        preprocessing_dir: Directory to store preprocessing data in.
+        additional_datasets: Which additional datasets you want to load.
+
+    Returns:
+        A single dataset with all data merged together.
+    """
     era5_files = list(PATHS_CFG["era5_hourly"].glob("*.nc"))
     ds_era5 = xr.open_mfdataset(era5_files)
     ds_grid = ds_era5[["latitude", "longitude"]].sortby(["latitude", "longitude"])
 
-    ds_ameriflux = xr.open_dataset(ameriflux_file).compute()
-    ds_ameriflux = compute_respiration(ds_ameriflux)
+    ds_fluxnet = xr.open_dataset(fluxnet_file).compute()
+    ds_fluxnet = compute_respiration(ds_fluxnet)
 
     fluxnet_site_extraction.preprocess_site_data(
         input_files=era5_files,
         out_dir=preprocessing_dir,
-        fluxnet_file=ameriflux_file,
+        fluxnet_file=fluxnet_file,
     )
 
-    ds_era5_sites = xr.open_mfdataset(preprocessing_dir.glob("fluxnet-sites_era5*.nc"))
+    ds_era5_sites = xr.open_mfdataset(
+        list(Path(preprocessing_dir).glob("fluxnet-sites_era5*.nc"))
+    )
     ds_era5_sites = calculate_era5_derived_vars(ds_era5_sites)
 
     # Load monthly data: hourly data will lead to memory issues
-    input_data = xr.merge([
-        datasets[name].load(freq="monthly", target_grid=ds_grid)
-        for name in desired_additional_datasets
-    ])
+    input_data = xr.merge(
+        [
+            datasets[name].load(freq="monthly", target_grid=ds_grid)
+            for name in additional_datasets
+        ]
+    )
 
-    additional_data = extract_sites_from_datasets(input_data, ds_ameriflux)
+    additional_data = extract_sites_from_datasets(input_data, ds_fluxnet)
 
-    ds_full = xr.merge([ds_ameriflux, ds_era5_sites, additional_data])
+    return xr.merge([ds_fluxnet, ds_era5_sites, additional_data])
 
-    df_train = ds_full.to_dataframe().dropna().reset_index()
+
+def run_workflow(
+    fluxnet_file: str | Path,
+    preprocessing_dir: str | Path,
+    additional_datasets: list[str],
+    models: Iterable[FluxnetExperiment] | FluxnetExperiment,
+    validation_plots: Iterable[str] = ("error", "feature", "residuals", "learning"),
+) -> None:
+    """Run the fluxnet workflow.
+
+    Args:
+        fluxnet_file: Path to the preprocessed fluxnet netCDF file.
+        preprocessing_dir: Directory to store preprocessing data in.
+        additional_datasets: Which additional datasets you want to load.
+        models: The Fluxnet experiment(s) in the format of the FluxnetExperiment object.
+        validation_plots: Which pycaret validation plots to add to the markdown file.
+    """
+    if isinstance(models, FluxnetExperiment):
+        models = [models]
+
+    ds = collect_training_data(fluxnet_file, preprocessing_dir, additional_datasets)
+
+    df_train = ds.to_dataframe().dropna().reset_index()
 
     for model in models:
         model.model_dir.mkdir(parents=True, exist_ok=True)
@@ -267,15 +299,25 @@ def run_workflow(
         )
 
         ml_model = pycs.compare_models(
-            include=[model.ml_model_name], n_select=1, round=5,
+            include=[model.ml_model_name],
+            n_select=1,
+            round=5,
         )
-            
+
         write_onnx(
             ml_model,
-            n_predictors=len(model.X_keys),  # Don't count the site
+            n_predictors=len(model.X_keys),
             fname=model.model_dir / f"{model.name}_{model.ml_model_name}.onnx",
         )
-        make_validation_plots(pycs, ml_model, output_dir=model.model_dir,)
+        write_model_variables(
+            model.model_dir, model.X_keys, model.y_key, additional_datasets
+        )
+        make_validation_plots(
+            pycs, ml_model, output_dir=model.model_dir, plots=validation_plots
+        )
         create_markdown_file(
-            ds_full, model.X_keys, model.y_key, model.model_dir,
+            ds,
+            model.X_keys,
+            model.y_key,
+            model.model_dir,
         )
