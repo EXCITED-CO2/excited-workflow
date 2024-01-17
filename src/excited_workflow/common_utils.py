@@ -7,8 +7,8 @@ def write_model_variables(
     output_directory: Path | str,
     X_keys: list[str],  # noqa: N803
     y_key: str,
-    included_datasets: list[str]
-    ) -> None:
+    included_datasets: list[str],
+) -> None:
     """Write the ML model's variables to a human- and python-readable file.
 
     Args:
@@ -18,9 +18,14 @@ def write_model_variables(
         included_datasets: Which additional datasets were included in the training.
     """
     with (Path(output_directory) / "model_variables.json").open("w") as f:
-        json.dump({
-            "X_keys": X_keys, "y_key": y_key, "included_datasets": included_datasets,
-        })
+        json.dump(
+            {
+                "X_keys": X_keys,
+                "y_key": y_key,
+                "included_datasets": included_datasets,
+            },
+            f,
+        )
 
 
 def read_model_variables(

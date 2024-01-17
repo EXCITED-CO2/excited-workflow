@@ -144,7 +144,7 @@ def read_ameriflux_csv(
     ds_site["time"] = ds_site["time"].values - site_tz_offset
     ds_site = ds_site.expand_dims("site")
 
-    return ds_site
+    return ds_site  # type: ignore
 
 
 def find_site_utc_offset(
