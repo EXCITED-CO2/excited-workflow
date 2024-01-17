@@ -8,9 +8,8 @@ graph TD;
     input[(ERA5, MODIS, etc.)];
     fluxnet[(Fluxnet)];
     carbontracker[(CarbonTracker)];
-    hourlymodel(Hourly model);
     dailydataset["hourly fluxnet NEE\n(biased in long term)"];
-    hourlymodel(Hourly ML model);
+    hourlymodel("Hourly ML models\n(GPP and respiration)");
     monthlydataset[(Monthly NEE\ndataset)];
     finaldataset[(Final daily\nNEE dataset)];
 
@@ -87,8 +86,7 @@ spei: /data/volume_2/spei
 Now you can run the notebooks.
 
 - Start with `preprocess_ameriflux.ipynb`. This notebook will preprocess the Ameriflux data to be in a more useful format.
-- Next you can preprocess the ERA5 data (extract data per site) with `preprocess_ERA5_sites.ipynb`.
-- Now you can train the ML model on the ERA5 and Fluxnet data with `workflow_fluxnet.ipynb`.
+- Now you can train ML models on the ERA5 and Fluxnet data with `train_fluxnet_models.ipynb`.
 - The data loading and model training for the CarbonTracker model is explained in `workflow_carbon_tracker.ipynb`.
 
 <hr>
