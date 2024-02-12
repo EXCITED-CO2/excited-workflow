@@ -87,7 +87,8 @@ Now you can run the notebooks.
 
 - Start with `preprocess_ameriflux.ipynb`. This notebook will preprocess the Ameriflux data to be in a more useful format.
 - Now you can train ML models on the ERA5 and Fluxnet data with `train_fluxnet_models.ipynb`.
-- The data loading and model training for the CarbonTracker model is explained in `workflow_carbon_tracker.ipynb`.
+- The data loading and model training for the CarbonTracker model is explained in `train_carbon_tracker.ipynb`.
+- With the `produce_carbontracker_dataset.ipynb` and `produce_fluxnet_dataset.ipynb` notebooks it is possible to create netCDF datasets with the model predictions.
 
 <hr>
 
@@ -182,4 +183,3 @@ The raw biomass data is available on: https://zenodo.org/records/4161694
 
 The biomass netCDF dataset can be retrieved using the following script:
 https://github.com/rubisco-sfa/ILAMB-Data/blob/a4c1c57011472d37e25fcb8336a5f2a470b80fb9/biomass/XuSaatchi/convert.py
-
