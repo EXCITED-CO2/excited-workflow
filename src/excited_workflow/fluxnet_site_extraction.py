@@ -1,6 +1,7 @@
 """Module for extracting fluxnet sites from global data."""
 from pathlib import Path
 
+import numpy as np
 import xarray as xr
 
 
@@ -83,3 +84,32 @@ def preprocess_site_data(
                     end="\r",
                 )
             extract_site_data(file, out_file, ds_ameriflux)
+
+
+def extract_sites_from_datasets(
+    input_data: xr.Dataset, fluxnet_data: xr.Dataset
+) -> xr.Dataset:
+    """Extract Fluxnet site locations from monthly datasets.
+    
+    Takes and returns xarray Datasets (not files), as it's sufficiently fast.
+    """
+    # Shift to center of month to allow for more accurate interpolation.
+    input_data["time"] = input_data["time"].copy(deep=True) + np.timedelta64(14, "D")
+
+    additional_data = []
+    for i_site in range(fluxnet_data["site"].size):
+        ds_site = fluxnet_data.isel(site=i_site)
+        site_data = input_data.sel(
+            latitude=ds_site["latitude"],
+            longitude=ds_site["longitude"],
+            time=ds_site["time"],
+            method="nearest",
+        ).drop(["latitude", "longitude"])
+
+        # Otherwise the original (monthly) dates are kept:
+        site_data["time"] = fluxnet_data["time"]
+        additional_data.append(site_data)
+
+    additional_site_data = xr.concat(additional_data, dim="site")
+    additional_site_data = additional_site_data.compute()
+    return additional_site_data

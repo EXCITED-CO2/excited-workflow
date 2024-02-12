@@ -7,7 +7,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-import numpy as np
 import onnxmltools
 import pycaret.regression
 import xarray as xr
@@ -18,6 +17,7 @@ from sklearn.model_selection import BaseCrossValidator
 from excited_workflow import fluxnet_site_extraction
 from excited_workflow.common_utils import write_model_variables
 from excited_workflow.config import PATHS_CFG
+from excited_workflow.fluxnet_site_extraction import extract_sites_from_datasets
 from excited_workflow.source_datasets import datasets
 
 
@@ -39,21 +39,36 @@ def calculate_era5_derived_vars(era5_dataset: xr.Dataset) -> xr.Dataset:
     )
 
     era5_dataset["day_of_year"] = era5_dataset["time"].dt.dayofyear
+    era5_dataset["day_of_year"].attrs = {
+        "units": "day",
+        "long_name": "day of year",
+    }
     era5_dataset["hour"] = era5_dataset["time"].dt.hour
 
     era5_dataset["t2m_1w_rolling"] = (
         era5_dataset["t2m"].rolling(time=7 * 24, center=True).mean()
     )
+    era5_dataset["t2m_1w_rolling"].attrs = era5_dataset["t2m"].attrs
+
     era5_dataset["mean_air_temperature"] = era5_dataset["t2m"].mean(dim="time")
+    era5_dataset["mean_air_temperature"].attrs = era5_dataset["t2m"].attrs
 
     era5_dataset["mean_dewpoint_depression"] = era5_dataset["t2m"].mean(
         dim="time"
     ) - era5_dataset["d2m"].mean(dim="time")
+    era5_dataset["mean_dewpoint_depression"].attrs = {
+        "units": "K",
+        "long_name": "Dewpoint depression",
+    }
 
     era5_dataset["dewpoint_depression_1w_rolling"] = (
         era5_dataset["t2m"].rolling(time=7 * 24, center=True).mean()
         - era5_dataset["d2m"].rolling(time=7 * 24, center=True).mean()
     )
+    era5_dataset["dewpoint_depression_1w_rolling"].attrs = era5_dataset[
+        "mean_dewpoint_depression"
+    ].attrs
+
     return era5_dataset
 
 
@@ -76,34 +91,14 @@ def compute_respiration(fluxnet_data: xr.Dataset) -> xr.Dataset:
     return fluxnet_data
 
 
-def extract_sites_from_datasets(
-    input_data: xr.Dataset, fluxnet_data: xr.Dataset
-) -> xr.Dataset:
-    """Extract Fluxnet site locations from input dataset."""
-    # Shift to center of month to allow for more accurate interpolation.
-    input_data["time"] = input_data["time"].copy(deep=True) + np.timedelta64(14, "D")
-
-    additional_data = []
-    for i_site in range(fluxnet_data["site"].size):
-        ds_site = fluxnet_data.isel(site=i_site)
-        site_data = input_data.sel(
-            latitude=ds_site["latitude"],
-            longitude=ds_site["longitude"],
-            time=ds_site["time"],
-            method="nearest",
-        ).drop(["latitude", "longitude"])
-
-        # Otherwise the original (monthly) dates are kept:
-        site_data["time"] = fluxnet_data["time"]
-        additional_data.append(site_data)
-
-    additional_site_data = xr.concat(additional_data, dim="site")
-    additional_site_data = additional_site_data.compute()
-    return additional_site_data
-
-
 def write_onnx(model: Any, n_predictors: int, fname: str | Path) -> None:
-    """Convert the provided model to ONNX and write it to file."""
+    """Convert the provided model to ONNX and write it to file.
+
+    Args:
+        model: The trained sklearn-compatible model
+        n_predictors: Number of predictor variables
+        fname: The path to where the ONNX file should be written to.
+    """
     fname = Path(fname)
 
     if "LGBM" in str(model):
