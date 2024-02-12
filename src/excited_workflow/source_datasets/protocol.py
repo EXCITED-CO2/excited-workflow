@@ -22,14 +22,14 @@ class DataSource(Protocol):
     @abstractmethod
     def load(
         self,
-        freq: Literal["monthly", "hourly"],
+        freq: Literal["monthly", "hourly"] | None = None,
         variables: list[str] | None = None,
         target_grid: xr.Dataset | None = None,
     ) -> xr.Dataset:
         """Load variables from this data source and regrid them to the target grid.
 
         Args:
-            freq: Desired frequency of the dataset. Either "monthly" or "hourly".
+            freq: Desired frequency of the dataset. Either "monthly", "hourly", or None.
             variables: List of variable names which should be downloaded.
             target_grid: Grid to which the data should be regridded to.
 
@@ -51,7 +51,9 @@ class DataSource(Protocol):
         return PATHS_CFG[self.name]
 
 
-def get_freq_kw(freq: Literal["hourly", "monthly"]) -> Literal["1H", "1MS"]:
+def get_freq_kw(
+    freq: Literal["hourly", "monthly"] | None
+) -> Literal["1H", "1MS"] | None:
     """Get the frequency keyword corresponding to the hourly/monthly resampling freq.
 
     Returns:
@@ -61,6 +63,8 @@ def get_freq_kw(freq: Literal["hourly", "monthly"]) -> Literal["1H", "1MS"]:
         return "1H"
     elif freq == "monthly":
         return "1MS"
+    elif freq is None:
+        return None
     else:
         msg = (
             "Invalid value for kwarg 'freq': '{freq}'.\n"

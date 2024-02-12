@@ -66,14 +66,14 @@ class Modis(DataSource):
 
     def load(
         self,
-        freq: Literal["hourly", "monthly"],
+        freq: Literal["monthly", "hourly"] | None = None,
         variables: list[str] | None = None,
         target_grid: xr.Dataset | None = None,
     ) -> xr.Dataset:
         """Load variables from this data source and regrid them to the target grid.
 
         Args:
-            freq: Desired frequency of the dataset. Either "hourly" or "monthly".
+            freq: Desired frequency of the dataset. Either "monthly", "hourly", or None.
             variables: List of variable names which should be downloaded.
             target_grid: Grid to which the data should be regridded to.
 
@@ -93,7 +93,7 @@ class Modis(DataSource):
             freq_kw = get_freq_kw(freq)
             ds["time"] = ds["time"].to_numpy() + pd.Timedelta(days=14)
             ds = ds.resample(time=freq_kw).interpolate("linear")
-        elif freq == "monthly":
+        elif freq == "monthly" or freq is None:
             pass
         else:
             get_freq_kw(freq)

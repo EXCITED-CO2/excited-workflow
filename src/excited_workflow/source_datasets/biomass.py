@@ -30,14 +30,14 @@ class Biomass(DataSource):
 
     def load(
         self,
-        freq: Literal["monthly", "hourly"],
+        freq: Literal["monthly", "hourly"] | None = None,
         variables: list[str] | None = None,
         target_grid: xr.Dataset | None = None,
     ) -> xr.Dataset:
         """Load variables from this data source and regrid them to the target grid.
 
         Args:
-            freq: Desired frequency of the dataset. Either "monthly" or "hourly".
+            freq: Desired frequency of the dataset. Either "monthly", "hourly", or None.
             variables: List of variable names which should be downloaded.
             target_grid: Grid to which the data should be regridded to.
 
@@ -52,15 +52,22 @@ class Biomass(DataSource):
 
         freq_kw = get_freq_kw(freq)
 
-        ds = xr.open_mfdataset(files, chunks={"lat": 60, "lon": 60})
+        ds = xr.combine_by_coords(
+            [xr.open_dataset(file, chunks={"lat": 240, "lon": 240, "time": 12}) for file in files],
+            combine_attrs="drop_conflicts",
+        )
 
         # Set time to middle of bounds.
         time_coords = _cftime_to_datetime(ds["time_bnds"].mean(dim="nv"))
         ds = ds.drop("time_bnds")
         ds["time"] = time_coords
 
+        if freq_kw is None:
+            freq_kw = "1YS"  # Dataset is yearly by default
+
         # Extend range to cover fluxnet data
         time_range = pd.date_range(start="1995-01-01", end="2022-01-01", freq=freq_kw)
+
         ds = ds.interp(time=time_range, method="linear")
         ds = ds.interpolate_na(
             dim="time",

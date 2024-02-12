@@ -18,14 +18,14 @@ class Spei(DataSource):
 
     def load(
         self,
-        freq: Literal["hourly", "monthly"],
+        freq: Literal["monthly", "hourly"] | None = None,
         variables: list[str] | None = None,
         target_grid: xr.Dataset | None = None,
     ) -> xr.Dataset:
         """Load variables from this data source and regrid them to the target grid.
 
         Args:
-            freq: Desired frequency of the dataset. Either "hourly" or "monthly".
+            freq: Desired frequency of the dataset. Either "monthly", "hourly", or None.
             variables: List of variable names which should be downloaded.
             target_grid: Grid to which the data should be regridded to.
 
@@ -39,16 +39,21 @@ class Spei(DataSource):
             msg = f"No netCDF files found at path '{self.get_path()}'"
             raise FileNotFoundError(msg)
 
-        ds = xr.open_mfdataset(files)
+        ds = xr.combine_by_coords(
+            [xr.open_dataset(file, chunks={"time": 24}) for file in files],
+            combine_attrs="drop_conflicts",
+        )
         ds = utils.convert_timestamps(ds)
         ds = ds.sel(time=slice("1990-01-01T00:00:00", None))  # Drop pre-90s data.
         ds = ds.rename({"lat": "latitude", "lon": "longitude"})
 
         if freq == "monthly":
             ds = ds.resample(time="1MS").mean()
-        else:
+        elif freq == "hourly":
             freq_kw = get_freq_kw(freq)
             ds = ds.resample(time=freq_kw).interpolate("linear")
+        else:
+            pass
 
         if variables is not None:
             ds = ds[variables]

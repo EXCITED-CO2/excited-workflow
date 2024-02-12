@@ -130,7 +130,7 @@ class LandCover(DataSource):
 
     def load(
         self,
-        freq: Literal["hourly", "monthly"],
+        freq: Literal["hourly", "monthly"] | None = None,
         variables: list[str] | None = None,
         target_grid: xr.Dataset | None = None,
     ) -> xr.Dataset:
@@ -159,8 +159,8 @@ class LandCover(DataSource):
             msg = f"No netCDF files found at path '{preprocessed_dir}'"
             raise FileNotFoundError(msg)
 
-        freq_kw = get_freq_kw(freq)
         ds = xr.open_mfdataset(files, chunks={"lat": 2000, "lon": 2000})
-        ds = ds.resample(time=freq_kw).interpolate("nearest")
+        if freq is not None:
+            ds = ds.resample(time=get_freq_kw(freq)).interpolate("nearest")
 
         return ds
