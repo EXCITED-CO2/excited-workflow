@@ -53,17 +53,21 @@ class Biomass(DataSource):
         freq_kw = get_freq_kw(freq)
 
         ds = xr.combine_by_coords(
-            [xr.open_dataset(file, chunks={"lat": 240, "lon": 240, "time": 12}) for file in files],
+            [
+                xr.open_dataset(file, chunks={"lat": 240, "lon": 240, "time": 12})
+                for file in files
+            ],
             combine_attrs="drop_conflicts",
         )
+        assert isinstance(ds, xr.Dataset)  # combine_by_coords misses typing overload
 
         # Set time to middle of bounds.
         time_coords = _cftime_to_datetime(ds["time_bnds"].mean(dim="nv"))
         ds = ds.drop("time_bnds")
         ds["time"] = time_coords
 
-        if freq_kw is None:
-            freq_kw = "1YS"  # Dataset is yearly by default
+        if freq_kw is None:  # Dataset is yearly by default
+            freq_kw = "1YS"  # type: ignore
 
         # Extend range to cover fluxnet data
         time_range = pd.date_range(start="1995-01-01", end="2022-01-01", freq=freq_kw)
@@ -83,4 +87,4 @@ class Biomass(DataSource):
         if target_grid is not None:
             ds = ds.regrid.linear(target_grid)
 
-        return ds
+        return ds  # type: ignore

@@ -20,6 +20,7 @@ def load_era5(X_keys: list[str]) -> xr.Dataset:  # noqa: N803
 
     ds_seperate = [xr.open_dataset(file, chunks={"time": 1440}) for file in era5_files]
     ds_era5 = xr.combine_by_coords(ds_seperate, combine_attrs="drop")
+    assert isinstance(ds_era5, xr.Dataset)  # combine_by_coords misses typing overload
 
     keys = list(ds_era5.data_vars)
 
@@ -55,7 +56,7 @@ def predict(onnx_file: Path, input_data: np.ndarray) -> np.ndarray:
 
     onnx_input = {input_name: input_data}
     pred_onnx = session.run([output_name], onnx_input)[0]
-    return pred_onnx
+    return pred_onnx  # type: ignore
 
 
 def produce_dataset(
@@ -112,7 +113,7 @@ def produce_dataset(
             splits = np.array_split(df_input, 8)
             output_data = []
             for split in splits:
-                output_data.append(predict(onnx_file, split.to_numpy()))
+                output_data.append(predict(onnx_file, split.to_numpy()))  # type: ignore
             del splits
             output_data = np.concatenate(output_data)
 
@@ -128,6 +129,6 @@ def produce_dataset(
             print(f"Processing took {time()-t0:.0f} seconds.")
             print("Writing prediction to file...")
             data_out.to_netcdf(
-                output_dir / f"{y_key}_{start.year}-{start.month}-{start.day}.nc"
+                output_dir / f"{y_key}_{start.year}-{start.month}-{start.day}.nc"  # type: ignore
             )
             del data_out

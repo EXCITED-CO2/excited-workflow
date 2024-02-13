@@ -43,6 +43,7 @@ class Spei(DataSource):
             [xr.open_dataset(file, chunks={"time": 24}) for file in files],
             combine_attrs="drop_conflicts",
         )
+        assert isinstance(ds, xr.Dataset)  # combine_by_coords misses typing overload
         ds = utils.convert_timestamps(ds)
         ds = ds.sel(time=slice("1990-01-01T00:00:00", None))  # Drop pre-90s data.
         ds = ds.rename({"lat": "latitude", "lon": "longitude"})
@@ -60,4 +61,4 @@ class Spei(DataSource):
         if target_grid is not None:
             ds = ds.regrid.linear(target_grid)
 
-        return ds
+        return ds  # type: ignore

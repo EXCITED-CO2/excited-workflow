@@ -34,9 +34,7 @@ def calculate_era5_derived_vars(era5_dataset: xr.Dataset) -> xr.Dataset:
         mean_dewpoint_depression: Mean dewpoint depression.
     """
     era5_dataset = era5_dataset.copy(deep=True)
-    era5_dataset["ssr_6hr"] = (
-        era5_dataset["ssr"].rolling(time=6, center=True).mean()
-    )
+    era5_dataset["ssr_6hr"] = era5_dataset["ssr"].rolling(time=6, center=True).mean()
 
     era5_dataset["day_of_year"] = era5_dataset["time"].dt.dayofyear
     era5_dataset["day_of_year"].attrs = {
