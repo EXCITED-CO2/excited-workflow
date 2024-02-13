@@ -31,7 +31,7 @@ class ERA5DataSource(DataSource):
 
     def load(
         self,
-        freq: Literal["hourly", "monthly"],
+        freq: Literal["hourly", "monthly"] | None = None,
         variables: list[str] | None = None,
         target_grid: xr.Dataset | None = None,
     ) -> xr.Dataset:

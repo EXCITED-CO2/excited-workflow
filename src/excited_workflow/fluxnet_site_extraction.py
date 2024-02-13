@@ -90,7 +90,7 @@ def extract_sites_from_datasets(
     input_data: xr.Dataset, fluxnet_data: xr.Dataset
 ) -> xr.Dataset:
     """Extract Fluxnet site locations from monthly datasets.
-    
+
     Takes and returns xarray Datasets (not files), as it's sufficiently fast.
     """
     # Shift to center of month to allow for more accurate interpolation.
