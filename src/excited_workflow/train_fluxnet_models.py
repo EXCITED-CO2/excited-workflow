@@ -319,7 +319,7 @@ def run_workflow(
             fname=model.model_dir / f"{model.name}_{model.ml_model_name}.onnx",
         )
         write_model_variables(
-            model.model_dir, model.X_keys, model.y_key, additional_datasets
+            model.model_dir, ds, model.X_keys, model.y_key, additional_datasets
         )
         make_validation_plots(
             pycs, ml_model, output_dir=model.model_dir, plots=validation_plots
