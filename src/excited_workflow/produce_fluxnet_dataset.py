@@ -1,5 +1,6 @@
 """Functions for producing a dataset from a Fluxnet-based ML model."""
 from copy import copy
+from datetime import datetime
 from pathlib import Path
 from time import time
 
@@ -8,6 +9,7 @@ import onnxruntime
 import pandas as pd
 import xarray as xr
 
+import excited_workflow
 from excited_workflow.common_utils import read_model_variables
 from excited_workflow.config import PATHS_CFG
 from excited_workflow.source_datasets import datasets
@@ -73,7 +75,10 @@ def produce_dataset(
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    X_keys, y_key, required_datasets = read_model_variables(model_dir)  # noqa: N806
+    predictors, target, required_datasets = read_model_variables(model_dir)
+    X_keys = list(predictors)  # noqa: N806  (Get the var names only)
+    y_key = list(target)[0]
+
     onnx_file = next(Path(model_dir).glob("*.onnx"))
 
     ds_era5 = load_era5(X_keys)
@@ -125,6 +130,19 @@ def produce_dataset(
             data_out = data_out.sortby(["longitude", "latitude", "time"])
             # ensure new coords match old ones (i.e. that none are dropped)
             data_out = xr.align(original_coords, data_out, join="outer")[1]
+
+            # add the correct attributes
+            data_out[y_key].attrs = target[y_key]
+            data_out.attrs = {
+                "title": "EXCITED-workflow Fluxnet ML dataset",
+                "history": (
+                    "created using the excited workflow version "
+                    f"{excited_workflow.version} at "
+                    f"{datetime.utcnow():%Y-%m-%dT%H:%M:%S}Z"
+                ),
+                "ML model": Path(model_dir).name,
+                "predictor variables": str(predictors),
+            }
 
             print(f"Processing took {time()-t0:.0f} seconds.")
             print("Writing prediction to file...")
