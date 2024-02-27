@@ -1,0 +1,64 @@
+site_name: EXCITED-workflow documentation
+repo_url: https://github.com/EXCITED-CO2/excited-workflow
+repo_name: excited-workflow
+
+nav:
+  - Home: index.md
+  - System setup:
+    - Setup guide: system_setup.md
+    - Input datasets: input_data.md
+  - Notebooks:
+    - Overview: workflow_notebooks.md
+    - Preprocessing Ameriflux: notebooks/preprocess_ameriflux.ipynb
+    - Preprocessing ERA5: notebooks/preprocess_ERA5_sites.ipynb
+    - Fluxnet model training: notebooks/train_fluxnet_models.ipynb
+    - Hourly dataset production: notebooks/produce_fluxnet_dataset.ipynb
+    - CarbonTracker model training: notebooks/train_carbontracker_model.ipynb
+    - Monthly dataset production: notebooks/produce_carbontracker_dataset.ipynb
+
+theme:
+  name: material
+  custom_dir: docs/overrides
+  logo: logo/logo_excited.png
+  features:
+    - navigation.instant
+    - navigation.tabs
+    - navigation.tabs.sticky
+  icon:
+    repo: fontawesome/brands/github-alt
+
+  palette:
+    # Palette toggle for light mode
+    - scheme: default
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+      primary: deep orange
+      accent: red
+
+    # Palette toggle for dark mode
+    - scheme: slate
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+      primary: brown
+      accent: grey
+
+plugins:
+- mkdocs-jupyter:
+      include_source: True
+- search
+
+extra:
+  generator: false
+extra_css:
+  - stylesheets/extra.css
+
+markdown_extensions:
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
