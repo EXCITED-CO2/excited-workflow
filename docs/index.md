@@ -4,11 +4,10 @@ An open workflow for creating machine learning models for estimating the global 
 
 Using this workflow we aim to better constrain the CO2 exchange in terrestrial ecosystems on longer timescales using estimates from inverse models (e.g., CarbonTracker) as additional input data.
 
-More information is available on the documentation pages.
+For information on how to set up the workflow on your system, see the [setup page](system_setup.md).
+The workflow notebooks are all available [here](workflow_notebooks.md).
 
 The following flowchart lays out the workflow of EXCITED:
-
-<details><summary>View flowchart</summary>
 
 ```mermaid
 graph TD;
@@ -33,5 +32,3 @@ graph TD;
     monthlydataset-->finaldataset;
     input-->dailydataset;
 ```
-
-</details>
