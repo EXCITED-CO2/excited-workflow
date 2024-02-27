@@ -69,7 +69,7 @@ docs = [
     "mkdocs",
     "mkdocs-material",
     "mkdocs-gen-files",
-    "mkdocs-jupyer",
+    "mkdocs-jupyter",
 ]
 
 [tool.ruff]
