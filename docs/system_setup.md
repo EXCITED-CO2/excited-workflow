@@ -56,10 +56,16 @@ spei: /data/volume_2/spei
 
 === "Conda"
 
-    First create a new Python 3.10 or 3.11 environment:
+    First create a new Python environment:
 
     ```bash
-    conda env create 
+    conda env create --name excited python=3.11
+    ```
+
+    Then activate this environment:
+
+    ```bash
+    conda activate excited
     ```
 
     Now you can install the workflow with the following command:
@@ -69,6 +75,7 @@ spei: /data/volume_2/spei
     ```
 
     Additionally, to be able to work with the Jupyter notebooks:
+
     ```bash
     pip install ipython jupyter
     ```
