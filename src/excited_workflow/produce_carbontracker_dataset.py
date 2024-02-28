@@ -30,7 +30,7 @@ def run_model(onnx_model: Path, df: pd.DataFrame, x_keys: list[str]) -> Any:
     return predictions_onnx
 
 
-def get_predictions(
+def predict(
     ds_input: xr.Dataset, x_keys: list[str], ds_regions: xr.Dataset, model_dir: Path
 ) -> list[pd.DataFrame]:
     """Create NEE monthly dataset.
@@ -60,7 +60,7 @@ def get_predictions(
     return dfs  #
 
 
-def create_dataset(dfs: list[pd.DataFrame], data_dir: Path, x_keys: list[str]) -> Any:
+def produce_dataset(dfs: list[pd.DataFrame], data_dir: Path, x_keys: list[str]) -> Any:
     """Create dataset for predictions over entire time period.
 
     Args:
