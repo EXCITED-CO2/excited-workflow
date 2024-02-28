@@ -47,12 +47,12 @@ def mask_region(
         ]
     )
 
-    ds_sel = ds_merged.sel({"time": slice("2000-01", "2019-12")})
-    ds_sel = ds_sel.compute()
-    ds_sel = ds_sel.where(ds_merged["transcom_regions"] == mask)
+    ds_slice = ds_merged.sel({"time": slice("2000-01", "2019-12")})
+    ds_slice = ds_slice.compute()
+    ds_region = ds_slice.where(ds_merged["transcom_regions"] == mask)
+    ds_sel = ds_region.where(ds_region["lccs_class"] != 210)
     ds_sel[y_key].attrs["long_name"] = "terrestrial biosphere CO2 flux"
     df_sel = ds_sel.to_dataframe().dropna()
-
     return ds_sel, df_sel
 
 
