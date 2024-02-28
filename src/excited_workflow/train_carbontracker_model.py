@@ -1,6 +1,5 @@
 """Train carbon tracker datasets."""
 
-import datetime
 from pathlib import Path
 from typing import Any
 
@@ -10,35 +9,42 @@ import onnxmltools
 import pandas as pd
 import pycaret.regression
 import xarray as xr
-from dask.distributed import Client
 from skl2onnx.common.data_types import DoubleTensorType
 
 import excited_workflow
+from excited_workflow.common_utils import write_model_variables
 from excited_workflow.source_datasets import datasets
 
 
 def mask_region(
-    regions: Path,
-    target: Path,
-    ds_input: xr.Dataset,
+    regions_file: str | Path,
+    carbontracker_file: str | Path,
+    required_datasets: list[str],
     mask: int,
     y_key: str,
 ) -> tuple[xr.Dataset, pd.DataFrame]:
     """Limit data to a region and time slice.
 
     Args:
-        regions: path to regions file.
-        target: path to target dataset.
-        ds_input: input dataset.
+        regions_file: path to regions file.
+        carbontracker_file: path to target dataset.
+        required_datasets: list of datasets to be included in training.
         mask: name of region to mask to.
         y_key: target variable name.
 
     Returns:
         Masked dataset and dataframe.
     """
-    ds_regions = xr.open_dataset(regions)
-    ds_cb = xr.open_dataset(target)
+    ds_regions = xr.open_dataset(regions_file)
+    ds_cb = xr.open_dataset(carbontracker_file)
     ds_cb = excited_workflow.utils.convert_timestamps(ds_cb)
+    ds_input = xr.merge(
+        [
+            datasets[name].load(freq="monthly", target_grid=ds_cb)
+            for name in required_datasets
+        ]
+    )
+
     ds_merged = xr.merge(
         [
             ds_cb[[y_key]],
@@ -280,14 +286,14 @@ scatterplots for each group are created. \n\n"""
 
 
 def validate_model(
-    ds: xr.Dataset, groups: int, x_keys: list[str], y_key: str, output_dir: Path
+    ds: xr.Dataset, groups: int, X_keys: list[str], y_key: str, required_datasets, output_dir: Path
 ) -> None:
     """Validate the trained model by calculating rmse and scatterplots.
 
     Args:
         ds: dataset for training.
         groups: number of groups.
-        x_keys: list of input variables.
+        X_keys: list of input variables.
         y_key: target variable name.
         output_dir: directory to output rmse and scatterplots.
     """
@@ -298,14 +304,15 @@ def validate_model(
     rmses = []
     for group in range(groups):
         target_ds, prediction_ds = groupwise_cross_validation(
-            df_group, group, x_keys, y_key
+            df_group, group, X_keys, y_key
         )
         rmse = calculate_rmse(prediction_ds["prediction_label"], target_ds[y_key])
         predictions.append(prediction_ds)
         targets.append(target_ds)
         rmses.append(rmse)
 
-    create_markdown_file(ds, predictions, targets, rmses, x_keys, y_key, output_dir)
+    write_model_variables(output_dir, ds, X_keys, y_key, required_datasets)
+    create_markdown_file(ds, predictions, targets, rmses, X_keys, y_key, output_dir)
 
 
 def save_model(pycs: Any, model: Any, output_dir: Path) -> None:
@@ -324,53 +331,3 @@ def save_model(pycs: Any, model: Any, output_dir: Path) -> None:
 
     with open(output_dir / "lightgbm.onnx", "wb") as f:
         f.write(lightgbm_onnx.SerializeToString())
-
-
-if __name__ == "__main__":
-    client = Client()
-
-    cb_file = Path("/data/volume_2/EXCITED_prepped_data/CT2022.flux1x1-monthly.nc")
-    regions_file = Path("/data/volume_2/EXCITED_prepped_data/regions.nc")
-    output_path = Path.home()
-
-    desired_data = [
-        "biomass",
-        "spei",
-        "modis",
-        "era5_monthly",
-        "era5_land_monthly",
-        "copernicus_landcover",
-    ]
-
-    x_keys = [
-        "d2m",
-        "mslhf",
-        "msshf",
-        "ssr",
-        "str",
-        "t2m",
-        "spei",
-        "NIRv",
-        "skt",
-        "stl1",
-        "swvl1",
-        "lccs_class",
-    ]
-    y_key = "bio_flux_opt"
-
-    time = datetime.datetime.now().strftime("%Y-%m-%d_%H_%M")
-    output_dir = output_path / f"carbon_tracker-{time}"
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    ds_cb = xr.open_dataset(cb_file)
-    ds_cb = excited_workflow.utils.convert_timestamps(ds_cb)
-    ds_input = xr.merge(
-        [
-            datasets[name].load(freq="monthly", target_grid=ds_cb)
-            for name in desired_data
-        ]
-    )
-    ds_na, df = mask_region(regions_file, cb_file, ds_input, 2, y_key)
-    validate_model(ds_na, 5, x_keys, y_key, output_dir)
-    pycs, model = train_model(df, x_keys, y_key)
-    save_model(pycs, model, output_dir)
