@@ -286,7 +286,12 @@ scatterplots for each group are created. \n\n"""
 
 
 def validate_model(
-    ds: xr.Dataset, groups: int, X_keys: list[str], y_key: str, required_datasets, output_dir: Path
+    ds: xr.Dataset,
+    groups: int,
+    X_keys: list[str],
+    y_key: str,
+    required_datasets: list[str],
+    output_dir: Path,
 ) -> None:
     """Validate the trained model by calculating rmse and scatterplots.
 
@@ -295,6 +300,7 @@ def validate_model(
         groups: number of groups.
         X_keys: list of input variables.
         y_key: target variable name.
+        required_datasets: list of datasets required for training.
         output_dir: directory to output rmse and scatterplots.
     """
     df_group = create_groups(ds, groups)
