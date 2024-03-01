@@ -7,13 +7,14 @@ Config files will be searched for in directories in the following order:
 
 By placing the configuration files in /etc/excited/, the workflow can be configured
     for a shared system such as Surf Research Cloud.
-    
+
 If a config file is not found in any of these directories, an error will be raised.
 
 The following config files are required for running the workflow:
     1. data_paths.yaml
     2. dask.yaml (TODO)
 """
+
 import os
 from pathlib import Path
 

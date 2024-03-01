@@ -1,4 +1,5 @@
 """EXCITED dataset protocol definition."""
+
 import typing
 from abc import abstractmethod
 from pathlib import Path
@@ -55,15 +56,13 @@ class DataSource(Protocol):
 @typing.overload
 def get_freq_kw(
     freq: Literal["hourly", "monthly"],
-) -> Literal["1H", "1MS"]:
-    ...
+) -> Literal["1H", "1MS"]: ...
 
 
 @typing.overload
 def get_freq_kw(
     freq: None,
-) -> None:
-    ...
+) -> None: ...
 
 
 def get_freq_kw(

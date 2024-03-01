@@ -1,4 +1,5 @@
 """Utility functions shared by the Fluxnet and CarbonTracker workflows."""
+
 import json
 from pathlib import Path
 

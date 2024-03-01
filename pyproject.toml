@@ -75,7 +75,7 @@ docs = [
 [tool.ruff]
 select = ["E", "F", "B", "D", "C90", "I", "N", "UP", "PLE", "PLR", "PLW"]
 extend-select = ["D401", "D400", "D404", "TID252"]
-ignore = ["PLR2004", "PLR0913", "N813"]
+ignore = ["PLR2004", "PLR0913", "N813", "N803"]
 # Allow unused variables when underscore-prefixed.
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 target-version = "py310"

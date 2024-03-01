@@ -1,4 +1,5 @@
 """Ingest MODIS data."""
+
 from pathlib import Path
 from typing import Literal
 

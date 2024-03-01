@@ -1,4 +1,5 @@
 """EXCITED."""
+
 from excited_workflow import config
 from excited_workflow import utils
 

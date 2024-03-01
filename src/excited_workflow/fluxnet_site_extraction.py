@@ -1,4 +1,5 @@
 """Module for extracting fluxnet sites from global data."""
+
 from pathlib import Path
 
 import numpy as np
