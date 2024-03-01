@@ -1,4 +1,5 @@
 """Ingest ERA5 data."""
+
 from typing import Literal
 
 import xarray as xr

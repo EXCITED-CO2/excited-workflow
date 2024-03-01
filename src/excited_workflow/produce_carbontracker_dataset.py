@@ -1,4 +1,5 @@
 """Create NEE datasets from CarbonTracker model."""
+
 from datetime import datetime
 from pathlib import Path
 from typing import Any

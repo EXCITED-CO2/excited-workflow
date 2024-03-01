@@ -1,4 +1,5 @@
 """Ingest Copernicus land cover data."""
+
 from pathlib import Path
 from typing import Literal
 

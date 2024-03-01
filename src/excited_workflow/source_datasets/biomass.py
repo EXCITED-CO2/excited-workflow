@@ -1,4 +1,5 @@
 """Global biomass dataset."""
+
 from typing import Literal
 
 import numpy as np
