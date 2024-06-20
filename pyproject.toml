@@ -46,7 +46,8 @@ dependencies = [
     "dask[distributed]",
     "bokeh<3",
     "netcdf4",
-    "hdf5plugin",  # Required to read SZ3 lossy compressed files
+    "h5py",
+    "hdf5plugin",  # Required to read & write SZ3 lossy compressed files
     "matplotlib",
     "pyyaml",
     "timezonefinder",
