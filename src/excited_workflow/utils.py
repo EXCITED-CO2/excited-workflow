@@ -5,6 +5,7 @@ import warnings
 import numpy as np
 import pandas as pd
 import xarray as xr
+from pathlib import Path
 
 
 warnings.filterwarnings("ignore")  # suppress nanosecond warning for xarray
@@ -31,3 +32,18 @@ def convert_timestamps(dataset: xr.Dataset) -> xr.Dataset:
         ]
     )
     return ds
+
+
+def h5encoded(files: list[Path]) -> bool:
+    """Figure out of any of the netCDF files use a hdf5 compression filter."""
+    if len(files) == 0:
+        msg = "There are no files in the list."
+        raise ValueError(msg)
+    for file in files:
+        try:
+            xr.open_dataset(file, chunks="auto")
+        except RuntimeError as err:
+            if "NetCDF: Filter error: undefined filter" in str(err):
+                return True
+            raise err
+    return False
