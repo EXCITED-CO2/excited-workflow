@@ -96,7 +96,7 @@ def read_ameriflux_csv(
         - The data is masked for the minimum quality flag (if given).
         - The data is resampled to a 1-hour interval (for ERA5 alignment).
         - The timestamps are corrected to UTC.
-        - The data is returned as an xarray Dataset, contining the site as dimension.
+        - The data is returned as an xarray Dataset, containing the site as dimension.
 
     Args:
         sitename: Name of the site
@@ -192,7 +192,7 @@ def mask_sites_transcom(
     """
     ds_regions = xr.open_dataset(transcom_regions_file)
 
-    transcom2_sites: list[str] = []
+    transcom_sites: list[str] = []
     for site in site_props:
         if (
             ds_regions["transcom_regions"].sel(
@@ -202,15 +202,16 @@ def mask_sites_transcom(
             )
             == transcom_region
         ):
-            transcom2_sites.append(site)
+            transcom_sites.append(site)
 
-    return {site: site_props[site] for site in site_props if site in transcom2_sites}
+    return {site: site_props[site] for site in site_props if site in transcom_sites}
 
 
 def preprocess_ameriflux_sites(
     zip_folder: Path,
     metadata_file: Path,
     transcom_regions_file: Path,
+    transcom_region_number: int,
 ) -> xr.Dataset:
     """Preprocess the Ameriflux sites into analysis-ready data.
 
@@ -240,10 +241,10 @@ def preprocess_ameriflux_sites(
 
     site_props = mask_sites_transcom(
         transcom_regions_file=transcom_regions_file,
-        transcom_region=2,
+        transcom_region=transcom_region_number,
         site_props=site_props,
     )
-    print(f"Of which {len(site_props)} are located within transcom region 2.")
+    print(f"Of which {len(site_props)} are located within transcom region "+str(transcom_region_number)+".")
 
     print("Starting to load the .csv files...")
     ds_sites: list[xr.Dataset] = [xr.Dataset()] * len(site_props)
