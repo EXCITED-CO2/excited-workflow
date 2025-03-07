@@ -123,7 +123,11 @@ def read_ameriflux_csv(
     site_zipfile = zipfiles[0]
 
     regex_hhourly_file = re.compile(".*FULLSET_H[HR].*")  # grab the (half)hourly files.
-    site_zip = zipfile.ZipFile(site_zipfile)
+    try:
+        site_zip = zipfile.ZipFile(site_zipfile)
+    except:
+        msg = f"Tried opening {site_zipfile}, but I failed :'("
+        raise ValueError(msg)
 
     site_csv_fname = next(filter(regex_hhourly_file.match, site_zip.namelist()))
     with site_zip.open(site_csv_fname) as f:
