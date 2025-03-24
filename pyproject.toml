@@ -43,6 +43,7 @@ dependencies = [
     "pandas",
     "openpyxl", # Excel file compatibility.
     "xarray",
+    "h5netcdf", # New CDS files are incompatible with netCDF4
     "dask[distributed]",
     "bokeh<3",
     "netcdf4",

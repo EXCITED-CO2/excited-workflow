@@ -232,7 +232,7 @@ def collect_training_data(
     ds_era5 = xr.open_mfdataset(era5_files)
     ds_grid = ds_era5[["latitude", "longitude"]].sortby(["latitude", "longitude"])
 
-    ds_fluxnet = xr.open_dataset(fluxnet_file).compute()
+    ds_fluxnet = xr.open_dataset(fluxnet_file, engine="h5netcdf").compute()
     ds_fluxnet = compute_respiration(ds_fluxnet)
 
     fluxnet_site_extraction.preprocess_site_data(
@@ -242,7 +242,7 @@ def collect_training_data(
     )
 
     ds_era5_sites = xr.open_mfdataset(
-        list(Path(preprocessing_dir).glob("fluxnet-sites_era5*.nc"))
+        list(Path(preprocessing_dir).glob("ERA5*.nc")), engine="h5netcdf"
     )
 
     # Load monthly data: hourly data will lead to memory issues
