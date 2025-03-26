@@ -58,3 +58,16 @@ mkdocs serve
 ```
 
 This allows you to make changes to the documentation and view them immediately (after the docs are rebuilt).
+
+## Working on the code
+
+When working on the code keep in mind the following things:
+
+- Work in a branch, and merge to the main branch in a Pull Request on GitHub, where other developers can review your code.
+- Make sure that your code passes all CI tests before merging.
+- Update the documentation so that you and others can use it later.
+- Keep track of changes in the `CHANGELOG.md` file.
+- Use releases to create versions of the workflow that are easier to refer to later (or referable in a publication).
+  - Before a release update the version number in `src/excited_workflow/__init__.py`.
+  - Make sure that the Zenodo integration is turned on before making a new release on GitHub.
+  - Releases can be made through the GitHub web interface.
