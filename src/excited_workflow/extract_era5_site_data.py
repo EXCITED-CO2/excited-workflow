@@ -33,21 +33,32 @@ def extract_per_site_era5_data(
         chunks={"time": -1, "site": 1},
     )
 
+    def prep(ds):
+        ds = ds.drop("expver")
+        return ds.rename({"valid_time": "time"})
+
     ds_era5 = xr.open_mfdataset(
         list(era5_data_folder.glob("*.nc")),
+        preprocess=prep,
         parallel=True,
-        chunks={"time": -1, "latitude": 1, "longitude": 1},  # Rechunk for performance
+        engine="h5netcdf",
     )
+    ds_era5["longitude"] = (ds_era5["longitude"] + 180) % 360 - 180
+    ds_era5 = ds_era5.sortby(ds_era5["longitude"])
     era5_variables = list(ds_era5.data_vars)
 
     for i_site in range(len(ds_sites["site"])):
         ds_site = ds_sites.isel(site=[i_site])
-        ds_era5_site = ds_era5.sel(
-            latitude=ds_site["latitude"].values,
-            longitude=ds_site["longitude"].values,
-            method="nearest",
-            tolerance=1,
-        )
+        try:
+            ds_era5_site = ds_era5.sel(
+                latitude=ds_site["latitude"].values,
+                longitude=ds_site["longitude"].values,
+                method="nearest",
+                tolerance=1,
+            )
+        except KeyError as err:
+            msg = f"Failed to extract data for site {ds_site['site'].values[0]}"
+            raise ValueError(msg) from err
 
         for era5_var in era5_variables:
             fpath = output_folder / f"ERA5_{era5_var}_{ds_site['site'].values[0]}.nc"

@@ -38,11 +38,12 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
 ]
 dependencies = [
-    "scikit-learn==1.2.2",
+    "scikit-learn",
     "lightgbm==3.3.5",
     "pandas",
     "openpyxl", # Excel file compatibility.
     "xarray",
+    "h5netcdf", # New CDS files are incompatible with netCDF4
     "dask[distributed]",
     "bokeh<3",
     "netcdf4",
