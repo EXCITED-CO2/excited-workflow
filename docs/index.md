@@ -15,20 +15,20 @@ graph TD;
     input[(ERA5, MODIS, etc.)];
     fluxnet[(Fluxnet)];
     carbontracker[(CarbonTracker)];
-    dailydataset["hourly fluxnet NEE\n(biased in long term)"];
+    hourlydataset["Hourly fluxnet NEE\n(biased in long term)"];
     hourlymodel("Hourly ML models\n(GPP and respiration)");
     monthlydataset[(Monthly NEE\ndataset)];
-    finaldataset[(Final daily\nNEE dataset)];
+    finaldataset[(Final hourly\nNEE dataset)];
 
     fluxnet-->|target| hourlymodel;
     input-->|predictors| hourlymodel;
     input-->|predictors| monthlymodel;
     carbontracker-->|target| monthlymodel;
-    hourlymodel-->dailydataset;
+    hourlymodel-->hourlydataset;
     input-->monthlydataset;
     monthlymodel-->monthlydataset;
-    dailydataset-->hpf([high pass filter]);
+    hourlydataset-->hpf([high pass filter]);
     hpf-->finaldataset;
-    monthlydataset-->finaldataset;
-    input-->dailydataset;
+    monthlydataset-->|interpolate| finaldataset;
+    input-->hourlydataset;
 ```
