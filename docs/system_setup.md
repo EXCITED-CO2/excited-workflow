@@ -56,10 +56,17 @@ spei: /data/volume_2/spei
 
 === "Conda"
 
-    First create a new Python environment:
+    Clone the workflow to your machine using git:
 
     ```bash
-    conda env create --name excited python=3.11
+    git clone https://github.com/EXCITED-CO2/excited-workflow.git
+    cd excited-workflow
+    ```
+
+    Create a new Python environment:
+
+    ```bash
+    conda env create --name excited python=3.11 -c conda-forge
     ```
 
     Then activate this environment:
