@@ -1,37 +1,24 @@
 # EXCITED workflow
 
+<img align="right" width="100" alt="Logo" src="./logo/logo_excited.png">
+
+[![Docs](https://readthedocs.org/projects/excited-workflow/badge/?version=latest&style=flat)](https://excited-workflow.readthedocs.org/)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15089665.svg)](https://doi.org/10.5281/zenodo.15089665)
+
 An open workflow for creating machine learning models for estimating the global biospheric CO2 exchange.
 
 Using this workflow we aim to better constrain the CO2 exchange in terrestrial ecosystems on longer timescales using estimates from inverse models (e.g., CarbonTracker) as additional input data.
 
-More information is available on the documentation pages.
+A more detailed description on the workflow is available on the [documentation pages](https://excited-workflow.readthedocs.io/).
 
-The following flowchart lays out the workflow of EXCITED:
+## Running the workflow
 
-<details><summary>View flowchart</summary>
+The documentation has instructions on;
+- [how to install and configure the workflow](https://excited-workflow.readthedocs.io/en/latest/system_setup/)
+- [how to download the required data](https://excited-workflow.readthedocs.io/en/latest/input_data/)
 
-```mermaid
-graph TD;
-    monthlymodel(Monthly ML model);
-    input[(ERA5, MODIS, etc.)];
-    fluxnet[(Fluxnet)];
-    carbontracker[(CarbonTracker)];
-    dailydataset["hourly fluxnet NEE\n(biased in long term)"];
-    hourlymodel("Hourly ML models\n(GPP and respiration)");
-    monthlydataset[(Monthly NEE\ndataset)];
-    finaldataset[(Final daily\nNEE dataset)];
+The workflow itself consists on notebooks ([viewable here](https://excited-workflow.readthedocs.io/en/latest/workflow_notebooks/)) that guide you through each step.
 
-    fluxnet-->|target| hourlymodel;
-    input-->|predictors| hourlymodel;
-    input-->|predictors| monthlymodel;
-    carbontracker-->|target| monthlymodel;
-    hourlymodel-->dailydataset;
-    input-->monthlydataset;
-    monthlymodel-->monthlydataset;
-    dailydataset-->hpf([high pass filter]);
-    hpf-->finaldataset;
-    monthlydataset-->finaldataset;
-    input-->dailydataset;
-```
+## Acknowledgements
 
-</details>
+This workflow was developed under Netherlands eScience Center grant [NLESC.OEC.2022.017](https://research-software-directory.org/projects/excited).
