@@ -1,5 +1,7 @@
 # EXCITED workflow
 
+<img align="right" width="100" alt="Logo" src="./logo/logo_excited.png">
+
 [![Docs](https://readthedocs.org/projects/excited-workflow/badge/?version=latest&style=flat)](https://excited-workflow.readthedocs.org/)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.15089665.svg)](https://doi.org/10.5281/zenodo.15089665)
 
