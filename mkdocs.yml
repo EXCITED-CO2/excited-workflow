@@ -15,6 +15,7 @@ nav:
     - Hourly dataset production: notebooks/produce_fluxnet_dataset.ipynb
     - CarbonTracker model training: notebooks/train_carbontracker_model.ipynb
     - Monthly dataset production: notebooks/produce_carbontracker_dataset.ipynb
+  - Dev: dev.md
 
 theme:
   name: material

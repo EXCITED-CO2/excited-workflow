@@ -15,7 +15,7 @@ graph TD;
     input[(ERA5, MODIS, etc.)];
     fluxnet[(Fluxnet)];
     carbontracker[(CarbonTracker)];
-    hourlydataset["Hourly fluxnet NEE\n(biased in long term)"];
+    hourlydataset[("Hourly fluxnet NEE\n(biased in long term)")];
     hourlymodel("Hourly ML models\n(GPP and respiration)");
     monthlydataset[(Monthly NEE\ndataset)];
     finaldataset[(Final hourly\nNEE dataset)];
