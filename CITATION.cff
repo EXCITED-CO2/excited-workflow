@@ -1,0 +1,38 @@
+# YAML 1.2
+---
+authors:
+  -
+    affiliation: "Netherlands eScience Center"
+    family-names: Schilperoort
+    given-names: Bart
+    orcid: "https://orcid.org/0000-0003-4487-9822"
+  -
+    affiliation: "Utrecht University"
+    family-names: Koren
+    given-names: Gerbrand
+    orcid: "https://orcid.org/0000-0002-2275-0713"
+  -
+    affiliation: "Netherlands eScience Center"
+    family-names: Liu
+    given-names: Yang
+    orcid: "https://orcid.org/0000-0002-1966-8460"
+  -
+    affiliation: "Netherlands eScience Center"
+    family-names: Donnelly
+    given-names: Claire
+    orcid: "https://orcid.org/0000-0002-2546-4528"
+
+cff-version: "1.2.0"
+keywords:
+  - carbon cycle
+  - machine learning
+  - python
+license: "Apache-2.0"
+message: "If you use this software, please cite it using these metadata."
+repository-code: "https://github.com/EXCITED-CO2/excited-workflow"
+title: EXCITED workflow
+identifiers:
+  - description: Latest version of software
+    type: doi
+    value: "10.5281/zenodo.15089665"
+...
